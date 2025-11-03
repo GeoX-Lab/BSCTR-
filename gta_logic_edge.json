@@ -1,0 +1,354 @@
+{
+  "2->5": {
+    "start_node": "2",
+    "end_node": "5",
+    "messages": [
+      "OCR输出文本作为GoogleSearch的查询词"
+    ],
+    "weights": 0.0
+  },
+  "4->3": {
+    "start_node": "4",
+    "end_node": "3",
+    "messages": [
+      "ImageDescription输出文本作为CountGivenObject的对象描述"
+    ],
+    "weights": 0.0
+  },
+  "4->5": {
+    "start_node": "4",
+    "end_node": "5",
+    "messages": [
+      "ImageDescription输出文本作为GoogleSearch的查询词"
+    ],
+    "weights": 0.0
+  },
+  "4->7": {
+    "start_node": "4",
+    "end_node": "7",
+    "messages": [
+      "ImageDescription输出文本作为TextToBbox的对象描述（用于检测对象）"
+    ],
+    "weights": 0.0
+  },
+  "4->13": {
+    "start_node": "4",
+    "end_node": "13",
+    "messages": [
+      "ImageDescription输出文本作为TextToImage的关键词（生成新图像）"
+    ],
+    "weights": 0.0
+  },
+  "6->5": {
+    "start_node": "6",
+    "end_node": "5",
+    "messages": [
+      "RegionAttributeDescription输出文本作为GoogleSearch的查询词"
+    ],
+    "weights": 0.0
+  },
+  "6->12": {
+    "start_node": "6",
+    "end_node": "12",
+    "messages": [
+      "RegionAttributeDescription输出文本作为AddText的添加文本（标注到图像上）"
+    ],
+    "weights": 0.0
+  },
+  "9->1": {
+    "start_node": "9",
+    "end_node": "1",
+    "messages": [
+      "MathOCR输出文本（LaTeX数学表达式）作为Calculator的表达式（用于计算）"
+    ],
+    "weights": 0.0
+  },
+  "9->10": {
+    "start_node": "9",
+    "end_node": "10",
+    "messages": [
+      "MathOCR输出文本（LaTeX数学表达式）作为Solver的代码输入（用于求解方程）"
+    ],
+    "weights": 0.0
+  },
+  "10->12": {
+    "start_node": "10",
+    "end_node": "12",
+    "messages": [
+      "Solver输出文本（方程解）作为AddText的添加文本（标注到图像上）"
+    ],
+    "weights": 0.0
+  },
+  "3->12": {
+    "start_node": "3",
+    "end_node": "12",
+    "messages": [
+      "CountGivenObject输出整数（对象数量）作为AddText的添加文本（转换为文本后标注）"
+    ],
+    "weights": 0.0
+  },
+  "8->2": {
+    "start_node": "8",
+    "end_node": "2",
+    "messages": [
+      "Plot输出图像作为OCR的输入图像（提取图表中的文本）"
+    ],
+    "weights": 0.0
+  },
+  "8->4": {
+    "start_node": "8",
+    "end_node": "4",
+    "messages": [
+      "Plot输出图像作为ImageDescription的输入图像（描述图表内容）"
+    ],
+    "weights": 0.0
+  },
+  "8->12": {
+    "start_node": "8",
+    "end_node": "12",
+    "messages": [
+      "Plot输出图像作为AddText的输入图像（添加更多文本）"
+    ],
+    "weights": 0.0
+  },
+  "8->14": {
+    "start_node": "8",
+    "end_node": "14",
+    "messages": [
+      "Plot输出图像作为ImageStylization的输入图像（修改图表样式）"
+    ],
+    "weights": 0.0
+  },
+  "11->2": {
+    "start_node": "11",
+    "end_node": "2",
+    "messages": [
+      "DrawBox输出图像作为OCR的输入图像（识别框内文本）"
+    ],
+    "weights": 0.0
+  },
+  "11->3": {
+    "start_node": "11",
+    "end_node": "3",
+    "messages": [
+      "DrawBox输出图像作为CountGivenObject的输入图像（计算框内对象）"
+    ],
+    "weights": 0.0
+  },
+  "11->4": {
+    "start_node": "11",
+    "end_node": "4",
+    "messages": [
+      "DrawBox输出图像作为ImageDescription的输入图像（描述带框图像）"
+    ],
+    "weights": 0.0
+  },
+  "11->6": {
+    "start_node": "11",
+    "end_node": "6",
+    "messages": [
+      "DrawBox输出图像作为RegionAttributeDescription的输入图像（描述框内区域属性）"
+    ],
+    "weights": 0.0
+  },
+  "11->7": {
+    "start_node": "11",
+    "end_node": "7",
+    "messages": [
+      "DrawBox输出图像作为TextToBbox的输入图像（检测其他对象）"
+    ],
+    "weights": 0.0
+  },
+  "11->12": {
+    "start_node": "11",
+    "end_node": "12",
+    "messages": [
+      "DrawBox输出图像作为AddText的输入图像（添加更多文本）"
+    ],
+    "weights": 0.0
+  },
+  "11->14": {
+    "start_node": "11",
+    "end_node": "14",
+    "messages": [
+      "DrawBox输出图像作为ImageStylization的输入图像（风格化带框图像）"
+    ],
+    "weights": 0.0
+  },
+  "12->2": {
+    "start_node": "12",
+    "end_node": "2",
+    "messages": [
+      "AddText输出图像作为OCR的输入图像（识别添加的文本）"
+    ],
+    "weights": 0.0
+  },
+  "12->3": {
+    "start_node": "12",
+    "end_node": "3",
+    "messages": [
+      "AddText输出图像作为CountGivenObject的输入图像（计算对象）"
+    ],
+    "weights": 0.0
+  },
+  "12->4": {
+    "start_node": "12",
+    "end_node": "4",
+    "messages": [
+      "AddText输出图像作为ImageDescription的输入图像（描述带文本图像）"
+    ],
+    "weights": 0.0
+  },
+  "12->6": {
+    "start_node": "12",
+    "end_node": "6",
+    "messages": [
+      "AddText输出图像作为RegionAttributeDescription的输入图像（描述区域属性）"
+    ],
+    "weights": 0.0
+  },
+  "12->7": {
+    "start_node": "12",
+    "end_node": "7",
+    "messages": [
+      "AddText输出图像作为TextToBbox的输入图像（检测对象）"
+    ],
+    "weights": 0.0
+  },
+  "12->11": {
+    "start_node": "12",
+    "end_node": "11",
+    "messages": [
+      "AddText输出图像作为DrawBox的输入图像（绘制框）"
+    ],
+    "weights": 0.0
+  },
+  "12->14": {
+    "start_node": "12",
+    "end_node": "14",
+    "messages": [
+      "AddText输出图像作为ImageStylization的输入图像（风格化）"
+    ],
+    "weights": 0.0
+  },
+  "13->2": {
+    "start_node": "13",
+    "end_node": "2",
+    "messages": [
+      "TextToImage输出图像作为OCR的输入图像（识别生成图像中的文本）"
+    ],
+    "weights": 0.0
+  },
+  "13->3": {
+    "start_node": "13",
+    "end_node": "3",
+    "messages": [
+      "TextToImage输出图像作为CountGivenObject的输入图像（计算对象）"
+    ],
+    "weights": 0.0
+  },
+  "13->4": {
+    "start_node": "13",
+    "end_node": "4",
+    "messages": [
+      "TextToImage输出图像作为ImageDescription的输入图像（描述生成图像）"
+    ],
+    "weights": 0.0
+  },
+  "13->6": {
+    "start_node": "13",
+    "end_node": "6",
+    "messages": [
+      "TextToImage输出图像作为RegionAttributeDescription的输入图像（描述区域属性）"
+    ],
+    "weights": 0.0
+  },
+  "13->7": {
+    "start_node": "13",
+    "end_node": "7",
+    "messages": [
+      "TextToImage输出图像作为TextToBbox的输入图像（检测对象）"
+    ],
+    "weights": 0.0
+  },
+  "13->11": {
+    "start_node": "13",
+    "end_node": "11",
+    "messages": [
+      "TextToImage输出图像作为DrawBox的输入图像（绘制框）"
+    ],
+    "weights": 0.0
+  },
+  "13->12": {
+    "start_node": "13",
+    "end_node": "12",
+    "messages": [
+      "TextToImage输出图像作为AddText的输入图像（添加更多文本）"
+    ],
+    "weights": 0.0
+  },
+  "13->14": {
+    "start_node": "13",
+    "end_node": "14",
+    "messages": [
+      "TextToImage输出图像作为ImageStylization的输入图像（风格化）"
+    ],
+    "weights": 0.0
+  },
+  "14->2": {
+    "start_node": "14",
+    "end_node": "2",
+    "messages": [
+      "ImageStylization输出图像作为OCR的输入图像（识别风格化图像中的文本）"
+    ],
+    "weights": 0.0
+  },
+  "14->3": {
+    "start_node": "14",
+    "end_node": "3",
+    "messages": [
+      "ImageStylization输出图像作为CountGivenObject的输入图像（计算对象）"
+    ],
+    "weights": 0.0
+  },
+  "14->4": {
+    "start_node": "14",
+    "end_node": "4",
+    "messages": [
+      "ImageStylization输出图像作为ImageDescription的输入图像（描述风格化图像）"
+    ],
+    "weights": 0.0
+  },
+  "14->6": {
+    "start_node": "14",
+    "end_node": "6",
+    "messages": [
+      "ImageStylization输出图像作为RegionAttributeDescription的输入图像（描述区域属性）"
+    ],
+    "weights": 0.0
+  },
+  "14->7": {
+    "start_node": "14",
+    "end_node": "7",
+    "messages": [
+      "ImageStylization输出图像作为TextToBbox的输入图像（检测对象）"
+    ],
+    "weights": 0.0
+  },
+  "14->11": {
+    "start_node": "14",
+    "end_node": "11",
+    "messages": [
+      "ImageStylization输出图像作为DrawBox的输入图像（绘制框）"
+    ],
+    "weights": 0.0
+  },
+  "14->12": {
+    "start_node": "14",
+    "end_node": "12",
+    "messages": [
+      "ImageStylization输出图像作为AddText的输入图像（添加文本）"
+    ],
+    "weights": 0.0
+  }
+}
