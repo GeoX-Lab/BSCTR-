@@ -8,7 +8,6 @@ class ToolNode:
     description: str
     inputs: List[str]
     outputs: List[str]
-    state: int = 0
     feedback: List[str] = None
     vector: np.ndarray = None
 
@@ -17,4 +16,6 @@ class ToolEdge:
     start_node: str
     end_node: str
     messages: List[str]
-    weights: float = 0
+    status: int
+    timestamp: str
+    weights: float = 0.1

@@ -31,7 +31,6 @@ class ToolMem:
                 'description': tool_node.description,
                 'inputs': tool_node.inputs,
                 'outputs': tool_node.outputs,
-                'state': tool_node.state,
                 'feedback': tool_node.feedback,
                 'vector': tool_node.vector.tolist() if isinstance(tool_node.vector, np.ndarray) else tool_node.vector
             }
@@ -52,7 +51,6 @@ class ToolMem:
                 'description': tool_node.description,
                 'inputs': tool_node.inputs,
                 'outputs': tool_node.outputs,
-                'state': tool_node.state,
                 'feedback': tool_node.feedback,
                 'vector': tool_node.vector
             }
@@ -69,6 +67,8 @@ class ToolMem:
                 "start_node": tool_edge.start_node,
                 "end_node": tool_edge.end_node,
                 "messages": tool_edge.messages,
+                "states": tool_edge.status,
+                "timestamp": tool_edge.timestamp,
                 "weights": tool_edge.weights
             }
 
@@ -102,7 +102,6 @@ class ToolMem:
             'description': new_node.description,
             'inputs': new_node.inputs,
             'outputs': new_node.outputs,
-            'state': new_node.state,
             'feedback': new_node.feedback,
             'vector': new_node.vector.tolist() if isinstance(new_node.vector, np.ndarray) else new_node.vector
         }
@@ -138,7 +137,7 @@ class ToolMem:
 
         return f"Logical edge '{edge_key}' added successfully!"
 
-    def add_experience_edge(self, start_node: str, end_node: str, messages: str,weights: float = 1.0) -> str:
+    def add_experience_edge(self, start_node: str, end_node: str, messages: List[str], weights: float, states: int = 0) -> str:
         """
         添加经验边（基于执行反馈）
         """
@@ -152,11 +151,10 @@ class ToolMem:
         if edge_key in self.tool_edge:
             # 更新现有边
             edge = self.tool_edge[edge_key]
-            edge.weights = weights
-            edge.weights = np.mean(edge.weights) if edge.weights else 0.01
+            edge.weights = np.mean(weights) if edge.weights else 0.01
         else:
             # 创建新边
-            new_edge = ToolEdge(start_node, end_node, messages, 0.01)
+            new_edge = ToolEdge(start_node, end_node, messages, states, 0.01)
             self.tool_edge[edge_key] = new_edge
 
         # 保存到文件
