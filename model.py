@@ -1,6 +1,9 @@
 import os
 import yaml
-from typing import Dict, Any, Optional, AsyncGenerator
+import base64
+import aiofiles
+from pathlib import Path
+from typing import Dict, Any, Optional, AsyncGenerator, Union, List
 from openai import AsyncOpenAI
 
 def load_model_config_from_yaml(yaml_path: str, model: str) -> Dict[str, Any]:
@@ -21,33 +24,34 @@ def load_model_config_from_yaml(yaml_path: str, model: str) -> Dict[str, Any]:
     }
 
 class LLM:
-    """
-    只用 AsyncOpenAI 的 LLM 封装，从 YAML 配置加载参数。
-    """
-
-    def __init__(self, model: str, sys_prompt: Optional[str] = None):
+    def __init__(self, model: str):
         """
-        yaml_path: models.yaml 的路径
-        model_key: YAML 中的 top-level key（例如 gpt4o_default）
-        sys_prompt: 系统提示（可选）
+        封装 LLM类，可实现 LLM与 VLM的流式与非流式输出
+        流式输出格式：
+        {"type": "final", "text": "result..."}
+        非流式输出格式：
+        "result..."
+
+        Argument:
+            model: YAML文件中的 model_name
         """
         self.yaml_path = "./config.yaml"
         self.model = model
-        self.sys_prompt = sys_prompt
         self.config = load_model_config_from_yaml(self.yaml_path, model)
         client_kwargs = dict(self.config.get("client_kwargs"))
         self.client = AsyncOpenAI(**client_kwargs)
 
     async def generate_stream_res(
-        self,
-        prompt: str,
-        *,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        **kwargs
+            self,
+            prompt: str,
+            history: List[Dict] = None,
+            image_path = None,
+            max_tokens: Optional[int] = None,
+            temperature: Optional[float] = None,
+            **kwargs
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        异步生成器
+        异步生成器，返回每一块文本输出。
         """
         gen_conf = self.config.get("generation", {})
         max_tokens = max_tokens if max_tokens is not None else gen_conf.get("max_tokens")
@@ -58,44 +62,34 @@ class LLM:
             yield {"type": "error", "error": "OpenAI 客户端未初始化。"}
             return
 
-        use_responses_api = bool(self.config.get("use_responses_api", True))
-        model_id = self.config.get("model_id")
-
         try:
-            if use_responses_api:
-                input_payload = (self.sys_prompt + "\n" + prompt) if self.sys_prompt else prompt
-                call_kwargs = dict(
-                    model=model_id,
-                    input=input_payload,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
-                call_kwargs.update(kwargs)
-                resp_or_iter = await client.responses.create(**call_kwargs)
+            messages = await self.prepare_messages(prompt, image_path, history)
+            call_kwargs = dict(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream = True
+            )
+            call_kwargs.update(kwargs)
+            stream = await client.chat.completions.create(**call_kwargs)
 
-                # 流式：异步可迭代对象
-                if hasattr(resp_or_iter, "__aiter__"):
-                    async for chunk in resp_or_iter:
-                        text_piece = getattr(chunk, "output_text", None)
-                        if text_piece is None and isinstance(chunk, dict):
-                            if "output_text" in chunk:
-                                text_piece = chunk["output_text"]
-                            elif "choices" in chunk and chunk["choices"]:
-                                delta = chunk["choices"][0].get("delta")
-                                text_piece = delta.get("content") if delta else None
-                        if text_piece:
-                            yield text_piece
-                else:
-                    text = getattr(resp_or_iter, "output_text", None) or str(resp_or_iter)
-                    yield text
+            res: List[str] = []
+            async for chunk in stream:
+                piece = chunk.choices[0].delta.content
+                if piece:
+                    res.append(piece)
+                yield {"type": "text", "text": piece}
+            yield {"type": "final", "text": "".join(res)}
+
         except Exception as e:
-            yield {"error": f"调用 OpenAI API 失败: {e}"}
-            return
+            yield {"type": "error", "error": f"调用 OpenAI API 失败: {e}"}
 
     async def generate_res(
         self,
         prompt: str,
-        *,
+        history: List[Dict] = None,
+        image_path = None,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         **kwargs
@@ -109,25 +103,48 @@ class LLM:
         if client is None:
             return "OpenAI 客户端未初始化。"
 
-        use_responses_api = bool(self.config.get("use_responses_api", True))
-        model_id = self.config.get("model_id")
-
         try:
-            if use_responses_api:
-                input_payload = (self.sys_prompt + "\n" + prompt) if self.sys_prompt else prompt
-                call_kwargs = dict(
-                    model=model_id,
-                    input=input_payload,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
-                call_kwargs.update(kwargs)
+            messages = await self.prepare_messages(prompt, image_path, history)
+            call_kwargs = dict(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            call_kwargs.update(kwargs)
+            res = await client.chat.completions.create(**call_kwargs)
 
-                resp = await client.responses.create(**call_kwargs)
-                text = getattr(resp, "output_text", None) or (
-                    resp.get("output_text") if isinstance(resp, dict) else str(resp))
-
-                return text
+            try:
+                return res.choices[0].message.content or ""
+            except Exception:
+                if isinstance(res, dict):
+                    ch = res.get("choices", [{}])[0]
+                    msg = ch.get("message", {})
+                    return msg.get("content", "") or str(res)
+                return str(res)
 
         except Exception as e:
             return f"error {e}"
+
+    async def prepare_messages(self, prompt: str, image_path: str, history: List[Dict]):
+
+        messages = history.copy() if history is not None else []
+        if image_path:
+            base64_image = await self.image_to_base64(image_path)
+            content = [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+            ]
+        else:
+            content = [{"type": "text", "text": prompt}]
+        messages.append(
+            {"role": "user", "content": content}
+        )
+        return messages
+
+    @staticmethod
+    async def image_to_base64(image_path: Union[str, Path]) -> str:
+        async with aiofiles.open(image_path, "rb") as image_file:
+            content = await image_file.read()
+            encoded_string = base64.b64encode(content).decode("utf-8")
+        return encoded_string
