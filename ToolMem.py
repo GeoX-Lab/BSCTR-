@@ -4,6 +4,7 @@ import numpy as np
 import json
 import requests
 import yaml
+
 class ToolMem:
 
     """
@@ -19,29 +20,6 @@ class ToolMem:
         self.tool_edge: Dict[str, ToolEdge] = {}
         self.tool_node_path = tool_node_path
         self.tool_edge_path = tool_edge_path
-
-    def read_tool_doc(self):
-        """
-        提取 Tool的描述信息
-        """
-        serializable_nodes = {}
-
-        for tool_id, tool_node in self.tool_node.items():
-            node_dict = {
-                'name': tool_node.name,
-                'description': tool_node.description,
-                'inputs': tool_node.inputs,
-                'outputs': tool_node.outputs,
-                'feedback': tool_node.feedback,
-                'vector': tool_node.vector.tolist() if isinstance(tool_node.vector, np.ndarray) else tool_node.vector
-            }
-            serializable_nodes[tool_id] = node_dict
-
-        # 写入JSON文件
-        with open(self.tool_node_path, 'w', encoding='utf-8') as f:
-            json.dump(serializable_nodes, f, ensure_ascii=False, indent=2)
-
-        return f"Tool nodes saved to {self.tool_node_path}"
 
     def save_nodes_to_file(self) -> str:
         """保存工具节点到文件"""
@@ -94,7 +72,7 @@ class ToolMem:
             self.tool_edge = json.load(f)
             return self.tool_edge
 
-    def add_node(self, new_node: ToolNode):
+    def add_node(self, new_node):
         """
         添加 tool节点到 tool_list
         """
@@ -117,7 +95,7 @@ class ToolMem:
 
         return f"New Tool Node is saved to {self.tool_node_path}!"
 
-    def add_logical_edge(self, start_node: str, end_node: str, messages: str = "") -> str:
+    def add_edge(self, start_node: str, end_node: str, messages: List[str], timestamp=None) -> str:
         """
         添加逻辑边（由LLM生成）
         """
@@ -130,7 +108,7 @@ class ToolMem:
         if edge_key in self.tool_edge:
             return f"Edge '{edge_key}' already exists!"
 
-        new_edge = ToolEdge(start_node, end_node, messages, 0.01)
+        new_edge = ToolEdge(start_node=start_node, end_node=end_node, messages=messages, timestamp=timestamp, status=0)
         self.tool_edge[edge_key] = new_edge
 
         # 保存到文件
@@ -138,7 +116,7 @@ class ToolMem:
 
         return f"Logical edge '{edge_key}' added successfully!"
 
-    def add_experience_edge(self, start_node: str, end_node: str, messages: List[str], weights: float, states: int = 0) -> str:
+    def update_edge(self, start_node: str, end_node: str, timestamp: str, weights: float) -> str:
         """
         添加经验边（基于执行反馈）
         """
@@ -153,10 +131,8 @@ class ToolMem:
             # 更新现有边
             edge = self.tool_edge[edge_key]
             edge.weights = np.mean(weights) if edge.weights else 0.01
-        else:
-            # 创建新边
-            new_edge = ToolEdge(start_node, end_node, messages, states, 0.01)
-            self.tool_edge[edge_key] = new_edge
+            edge.status += 1
+            edge.timestamp = timestamp
 
         # 保存到文件
         self.save_edges_to_file()
@@ -191,6 +167,40 @@ class ToolMem:
         # 按相似度排序
         similarities.sort(key=lambda x: x[1], reverse=True)
         return similarities[:top_k]
+
+    def get_subgraph(self, tool_name: str, depth: int = 2) -> Dict[str, List[str]]:
+        """
+        根据指定工具及其深度，检索相关的子图。
+        depth 控制递归的深度，表示从目标工具开始，向外扩展的层级。
+
+        返回一个字典，其中包括该工具及其相关工具和边的信息。
+        """
+        # 初始化相关子图
+        subgraph = {tool_name: {'connected_tools': [], 'edges': []}}
+        visited = set()  # 防止重复访问
+        to_visit = [tool_name]  # 待访问的工具列表
+
+        # 执行广度优先搜索，直到达到指定深度
+        current_depth = 0
+        while to_visit and current_depth < depth:
+            next_to_visit = []
+            for tool in to_visit:
+                if tool not in visited:
+                    visited.add(tool)
+                    # 获取当前工具与其他工具的连接关系
+                    connected_tools = self.get_connected_tools(tool)
+                    subgraph[tool]['connected_tools'] = connected_tools
+                    # 将当前工具的边信息添加到子图中
+                    for connected_tool, direction, _ in connected_tools:
+                        edge_key = f"{tool}->{connected_tool}"
+                        if edge_key in self.tool_edge:
+                            subgraph[tool]['edges'].append(self.tool_edge[edge_key])
+
+                        next_to_visit.append(connected_tool)
+            to_visit = next_to_visit
+            current_depth += 1
+
+        return subgraph
 
     def get_connected_tools(self, tool_name: str):
         """

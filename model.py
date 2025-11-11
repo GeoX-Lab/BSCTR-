@@ -116,6 +116,7 @@ class LLM:
 
             try:
                 return res.choices[0].message.content or ""
+
             except Exception:
                 if isinstance(res, dict):
                     ch = res.get("choices", [{}])[0]

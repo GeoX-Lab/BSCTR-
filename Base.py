@@ -18,4 +18,4 @@ class ToolEdge:
     messages: List[str]
     status: int
     timestamp: str
-    weights: float = 0.1
+    weights: float = 0.01
