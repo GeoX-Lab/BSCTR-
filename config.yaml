@@ -7,3 +7,7 @@ qwen_2.5:
     temperature: 0.0
     stream: true
 
+ollama:
+  embedding_url: "http://localhost:11434/api/embeddings"
+  model_name: "nomic-embed-text:latest"
+  embedding_dim: 768

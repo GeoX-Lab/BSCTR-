@@ -3,6 +3,7 @@ from typing import Dict, List
 import numpy as np
 import json
 import requests
+import yaml
 class ToolMem:
 
     """
@@ -242,19 +243,23 @@ class ToolMem:
         """
         使用本地 Ollama模型获取文本的向量表示
         """
+        with open("config.yaml", "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f)
         try:
             # Ollama的API端点，假设运行在本地默认端口
-            url = "http://localhost:11434/api/embeddings"
+            url = cfg["ollama"]["embedding_url"]
+            model_name = cfg["ollama"]["model_name"]
+
             data = {
-                "model": "nomic-embed-text:latest",
+                "model": model_name,
                 "prompt": text
             }
-
             response = requests.post(url, json=data)
             response.raise_for_status()
             embedding = response.json()["embedding"]
             return np.array(embedding)
 
         except Exception as e:
+            dim = cfg["ollama"]["embedding_dim"]
             print(f"Error getting embedding: {e}")
-            return np.zeros(768)
+            return np.zeros(dim)
