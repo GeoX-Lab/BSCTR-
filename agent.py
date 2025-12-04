@@ -10,8 +10,7 @@ from datetime import datetime
 from model import LLM
 from ToolMem import ToolMem
 from Toolregistry import ToolRegistry
-from Base import ToolNode
-from prompt import tool_agent_prompt, tool_graph_build
+from prompt import tool_agent_prompt, graph_build_prompt
 
 class BaseAgent:
     def __init__(self,
@@ -324,56 +323,154 @@ class ToolManager(BaseAgent):
         return self.history
 
 class Mem_Builder:
-    def __init__(self, initial_model: str, sys_prompt: str):
+    def __init__(self, initial_model: str, sys_prompt: str = tool_agent_prompt):
+        """
+        initial_model: 传给你自己的 LLM 封装的 model 名称
+        sys_prompt:    系统提示词，默认用 BASE_SYS_PROMPT，也可以外部覆盖
+        """
         self.initial_model = initial_model
         self.sys_prompt = sys_prompt
-        self.batch_size = 5
+        self.batch_size = 1
         self.tool_mem = ToolMem()
-        self.tool_node = {}
-        self.llm = LLM(initial_model)  # 按你原来的 LLM
+        self.tool_node: Dict[str, Any] = {}
+        self.llm = LLM(initial_model)
+
+        # 记录多次无法建立连接的“待定”工具
+        self.pending_tools = set()
 
     # ---------- 节点 ----------
     def get_node_doc(self) -> Dict[str, Any]:
+        """
+        从 ToolMem 的 node.json 读入所有工具，标准化为 {name: node}
+        """
         self.tool_node = self.tool_mem.get_node_from_doc()
         return self.tool_node
 
-    # ---------- Prompt ----------
-    def _generate_batch_prompt(self, tools: List[Dict[str, Any]], subgraphs: Optional[Dict[str, Any]] = None) -> str:
+    # ---------- 初始化工具筛选 ----------
+    def _select_initial_tools(self, tools: List[Dict[str, Any]], first_n: int = 20) -> List[Dict[str, Any]]:
         """
-        根据当前批次的工具（可选附带子图上下文）生成 LLM prompt
+        初始化建图阶段，优先选“基础 I/O / 数据源 / 预处理”工具作为起始节点。
+        规则（打分）：
+        - inputs 为空或很短 → 更可能是数据源 → +3
+        - 描述中包含典型 I/O / 预处理关键词 → +3
         """
-        prompt = "以下是工具信息，请为每个工具构建工具图的边（逻辑关系）：\n"
+        keywords = [
+            "load", "read", "open", "download",
+            "raster", "tiff", "geotiff", "shapefile"
+        ]
+
+        scored: List[tuple] = []
+
         for tool in tools:
-            name = tool.get("name") or tool.get("tool_name")
-            desc = tool.get("description") or tool.get("doc") or ""
-            inputs = tool.get("inputs")
-            outputs = tool.get("outputs")
+            desc = (tool.get("description") or "").lower()
+            inputs = (tool.get("inputs") or "").lower()
+            outputs = (tool.get("outputs") or "").lower()
 
-            prompt += f"工具：{name}\n"
-            prompt += f"描述：{desc}\n"
-            prompt += f"输入：{inputs}\n"
-            prompt += f"输出：{outputs}\n"
+            score = 0
 
-            if subgraphs and name in subgraphs:
-                sg = subgraphs[name]
-                # 简要展开子图上下文
-                prompt += "相关子图信息：\n"
-                for node_name, info in sg.items():
-                    ct = info.get("connected_tools", [])
-                    edges = info.get("edges", [])
-                    prompt += f"  - 关联工具：{ct}\n"
-                    prompt += f"  - 已有边数量：{len(edges)}\n"
-            prompt += "\n"
+            # 没有输入 / 输入很短：更像是 pipeline 的起点
+            if not inputs or len(inputs) < 10:
+                score += 3
 
-        prompt += (
-            "请根据这些信息推断工具之间的连接关系，并只输出 JSON：\n"
-            "{\n"
-            '  "edges": [\n'
-            '    {"start_tool": "工具A", "end_tool": "工具B", "messages": ["连接理由/说明"]}\n'
-            "  ]\n"
-            "}\n"
-        )
-        return prompt
+            # 包含 I/O / 预处理关键词：进一步加分
+            if any(k in desc for k in keywords):
+                score += 3
+
+            scored.append((score, tool))
+
+        # 按分数从高到低排序
+        scored.sort(key=lambda x: x[0], reverse=True)
+
+        selected = [t for s, t in scored[:first_n] if s > 0]
+
+        print(f"[INIT SELECT] selected {len(selected)} initial tools (score > 0):")
+        for s, t in scored[:first_n]:
+            print(f"  - {t['name']} (score={s})")
+
+        if not selected:
+            print("[INIT SELECT] no high-score IO tools found, fallback to first-N by name")
+            selected = tools[:first_n]
+
+        return selected
+
+    # ---------- I/O 匹配子图 ----------
+    def _find_subgraph_by_io(self, tool: Dict) -> List[str]:
+        """
+        Two-stage candidate search:
+        1) I/O keyword matching (broad recall)
+        2) semantic similarity filtering (precision boost)
+
+        Output → Input 才可能建立边
+        """
+
+        outputs = (tool.get("outputs") or "").lower()
+        if not outputs:
+            return []
+
+        tokens = outputs.split()
+
+        # -------- Step 1: keyword I/O match --------
+        initial_candidates = []
+        for name, node in self.tool_mem.tool_node.items():
+            if name == tool["name"]:
+                continue
+
+            inputs = (node.get("inputs") or "").lower()
+            if not inputs:
+                continue
+
+            # output token 匹配 input
+            if any(tok in inputs for tok in tokens):
+                initial_candidates.append(name)
+
+        if not initial_candidates:
+            return []
+
+        # -------- Step 2: semantic similarity filter --------
+        q_vec = tool.get("vector")
+        filtered = []
+
+        for name in initial_candidates:
+            node = self.tool_mem.tool_node[name]
+            sim = self.tool_mem._cos_similarity(q_vec, node.get("vector"))
+
+            # 阈值可调
+            if sim > 0.25:
+                filtered.append((name, sim))
+
+        # semantic relevance sorting
+        filtered.sort(key=lambda x: x[1], reverse=True)
+
+        # 返回 Top-K 保证上下文不会爆炸
+        return [name for name, _ in filtered[:5]]
+
+    # ---------- Prompt 生成（单工具） ----------
+    def _generate_batch_prompt(self, tool: Dict, candidates: List[str]) -> str:
+        """
+        针对单个工具和若干个候选下游工具生成 prompt。
+        """
+        name = tool.get("name")
+        desc = tool.get("description") or ""
+        inputs = tool.get("inputs")
+        outputs = tool.get("outputs")
+
+        prompt = f"""
+            Tool Name: {name}
+            Description: {desc}
+            Inputs: {inputs}
+            Outputs: {outputs}
+            
+            Candidate downstream tools based on I/O matching:
+            {candidates}
+            
+            Now, following the rules, infer all valid workflow edges related to this tool.
+            Remember:
+            - Only connect when this tool's OUTPUT is required as another tool's INPUT.
+            - Prefer realistic remote-sensing processing pipelines.
+            - If no valid edges exist, return {{"edges": []}}.
+        """
+
+        return self.sys_prompt + "\n" + prompt
 
     # ---------- LLM ----------
     async def _llm_generate_edge(self, prompt: str) -> str:
@@ -383,129 +480,139 @@ class Mem_Builder:
     def _run_async(self, batch_prompt: str) -> str:
         return asyncio.run(self._llm_generate_edge(batch_prompt))
 
-    # ---------- 解析/落库 ----------
+    # ---------- 解析 ----------
     def _parse_llm_response(self, llm_response: str) -> Dict[str, Dict]:
-        edges = {}
+        edges: Dict[str, Dict[str, Any]] = {}
         try:
             parsed = json.loads(llm_response)
             for edge in parsed.get("edges", []):
                 st = edge["start_tool"]
                 ed = edge["end_tool"]
-                edge_key = f"{st} -> {ed}"
+                edge_key = f"{st}->{ed}"
                 edges[edge_key] = {
                     "start_node": st,
                     "end_node": ed,
-                    "messages": edge.get("messages", []),
+                    "messages": edge.get("messages", ""),
                 }
-        except json.JSONDecodeError:
-            print(f"LLM 响应解析失败，响应内容: {llm_response}")
         except Exception as e:
-            print(f"解析 LLM 响应时发生错误: {str(e)}")
+            print(f"[ERROR] LLM parsing failed: {e}")
+            print("Raw response:", llm_response)
         return edges
 
     def _add_edges_to_mem(self, edges: Dict[str, Dict]):
         for _, d in edges.items():
             self.tool_mem.add_edge(d["start_node"], d["end_node"], d.get("messages", []))
 
-    # ---------- 子图检索 ----------
-    def _find_relevant_subgraph(self, tool: Dict) -> Dict[str, Dict]:
+    # ---------- 初始化建图（不重试） ----------
+    def _initial_build(self, tools: List[Dict[str, Any]]) -> None:
         """
-        根据当前工具进行相似度搜索，找到相关工具，并构建子图（收集连接关系与边）。
+        初始化阶段：只跑一遍，不做重试。
+        目的是先建立一批基础 workflow 边，给后续工具提供上游支撑。
         """
-        relevant_subgraph = {}
-        query_text = tool.get("description") or tool.get("doc") or tool.get("name", "")
-        similar_tools = self.tool_mem.get_similar_tools(query_text)
+        print("[INIT BUILD] Building base graph with initial tools...")
 
-        for similar_tool, _, _ in similar_tools:
-            connected_tools = self.tool_mem.get_connected_tools(similar_tool)
-            relevant_subgraph[similar_tool] = {"connected_tools": connected_tools, "edges": []}
+        for tool in tools:
+            name = tool["name"]
+            candidates = self._find_subgraph_by_io(tool)
 
-            for connected_tool, direction, _ in connected_tools:
-                if direction == "outgoing":
-                    edge_key = f"{similar_tool}->{connected_tool}"
-                else:
-                    edge_key = f"{connected_tool}->{similar_tool}"
-                if edge_key in self.tool_mem.tool_edge:
-                    relevant_subgraph[similar_tool]["edges"].append(self.tool_mem.tool_edge[edge_key])
+            if not candidates:
+                print(f"[INIT] {name} has no I/O match, skipping in init phase")
+                continue
 
-        return relevant_subgraph
+            # 控制候选数量，防止 prompt 过长
+            candidates = candidates[:3]
 
-    # ---------- 批处理 ----------
+            prompt = self._generate_batch_prompt(tool, candidates)
+            llm_response = self._run_async(prompt)
+            edges = self._parse_llm_response(llm_response)
+            self._add_edges_to_mem(edges)
+
+        print("[INIT BUILD] Done.")
+
+    # ---------- 延迟重试建图 ----------
     def build_tool_graph(self, tool_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        对传入的工具列表按 self.batch_size 分批，分别做子图检索 + LLM 出边 + 落库
+        对传入的工具列表做增量建图：
+        - 没有 I/O 匹配的工具：放回队列，等其它工具建完边后重试
+        - 每个工具最多重试 MAX_RETRY 次
+        - 多次失败则加入 pending_tools，不强行连错边
         """
         if not tool_list:
             return {"nodes": self.tool_mem.tool_node, "edges": self.tool_mem.tool_edge}
 
         tool_queue = deque(tool_list)
+        attempt_count = {t["name"]: 0 for t in tool_list}
+        MAX_RETRY = 3
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = []
-            while tool_queue:
-                batch = [tool_queue.popleft() for _ in range(min(self.batch_size, len(tool_queue) + 1))]
-                # 纠正：传 tools（列表）+ subgraphs（字典），而不是把 subgraphs 当 batch 传进去
-                sub_graphs = {t["name"]: self._find_relevant_subgraph(t) for t in batch if t.get("name")}
-                batch_prompt = self._generate_batch_prompt(batch, subgraphs=sub_graphs)
-                futures.append(executor.submit(self._run_async, batch_prompt))
+        while tool_queue:
+            tool = tool_queue.popleft()
+            name = tool["name"]
 
-            for future in concurrent.futures.as_completed(futures):
-                llm_response = future.result()
-                edges = self._parse_llm_response(llm_response)
-                self._add_edges_to_mem(edges)
+            candidates = self._find_subgraph_by_io(tool)
 
+            if not candidates:
+                attempt_count[name] += 1
+                print(f"[DEFER] {name} no I/O match, retry {attempt_count[name]}/{MAX_RETRY}")
+
+                if attempt_count[name] < MAX_RETRY:
+                    # 放回队列，等待图结构更完整后再试
+                    tool_queue.append(tool)
+                    continue
+                else:
+                    # 多次失败，标记为 pending，但不强行连边
+                    print(f"[PENDING] {name} stored as pending (no valid I/O match)")
+                    self.pending_tools.add(name)
+                    continue
+
+            # 有候选 → 构造 prompt 调 LLM
+            candidates = candidates[:3]  # 只取 Top-3，控制上下文长度
+            prompt = self._generate_batch_prompt(tool, candidates)
+            llm_response = self._run_async(prompt)
+            edges = self._parse_llm_response(llm_response)
+            self._add_edges_to_mem(edges)
+
+        # 只在外部统一保存，这里不强制写盘
         return {"nodes": self.tool_mem.tool_node, "edges": self.tool_mem.tool_edge}
 
-    # ---------- 便捷：一次读完节点，先 20 后每批 5 ----------
+    # ---------- 从 node 文件构图 ----------
     def build_from_node_file(self, first_n: int = 20) -> Dict[str, Any]:
         """
-        一次性从 node 文件读全量工具：
-        - 先取前 first_n（默认 20）个工具初始化建边
-        - 其余工具每批 self.batch_size（默认 5）做子图检索 + 建边
+        从 node.json 全量加载工具：
+        - 第一步：筛选出 first_n 个“基础 I/O / 预处理”工具做初始化建图
+        - 第二步：对剩余工具使用延迟重试机制补全边
         """
         all_nodes = self.get_node_doc()  # {name: node}
         tools: List[Dict[str, Any]] = []
+
         for name, node in all_nodes.items():
-            if isinstance(node, ToolNode):
-                tools.append({
-                    "name": name,
-                    "description": node.description,
-                    "inputs": node.inputs,
-                    "outputs": node.outputs,
-                    "feedback": node.feedback,
-                    "vector": node.vector,
-                })
-            else:
-                # dict 形态确保有 name
-                node = dict(node)
-                node["name"] = name
-                tools.append(node)
+            node = dict(node)
+            node["name"] = name
+            tools.append(node)
 
-        if not tools:
-            print("tool_node 文件为空。")
-            return {"nodes": self.tool_mem.tool_node, "edges": self.tool_mem.tool_edge}
-
-        # 固定顺序：按名称排序，避免每次随机
+        # 按名称排序，保证稳定性
         tools.sort(key=lambda x: x.get("name", ""))
 
-        # 先 20
-        n0 = min(first_n, len(tools))
-        init_batch = tools[:n0]
-        print(f"[Init] 使用前 {n0} 个工具初始化图。")
-        self.build_tool_graph(init_batch)
+        print(f"[LOAD] total tools: {len(tools)}")
 
-        # 再每批 5
-        remain = tools[n0:]
-        print(f"[Remain] 剩余 {len(remain)} 个工具；每批 {self.batch_size} 个处理。")
-        for i in range(0, len(remain), self.batch_size):
-            batch = remain[i:i + self.batch_size]
-            print(f"[Batch {i // self.batch_size + 1}] 处理 {len(batch)} 个工具。")
-            self.build_tool_graph(batch)
+        # Step 1: 初始化工具筛选 + 建图
+        init_tools = self._select_initial_tools(tools, first_n=first_n)
+        self._initial_build(init_tools)
 
-        # 最终持久化（add_edge 已在写，这里再兜底一下）
+        # Step 2: 对剩余工具做延迟重试建图
+        init_names = {t["name"] for t in init_tools}
+        remain_tools = [t for t in tools if t["name"] not in init_names]
+
+        print(f"[REMAIN] {len(remain_tools)} tools left for deferred linking")
+        self.build_tool_graph(remain_tools)
+
+        # 最终持久化
         if self.tool_mem.tool_edge_path:
             self.tool_mem.save_edges_to_file()
+
+        print(f"[PENDING] total pending tools: {len(self.pending_tools)}")
+
         return {"nodes": self.tool_mem.tool_node, "edges": self.tool_mem.tool_edge}
+
 
 if __name__ == "__main__":
     def build_graph_from_node_file(
@@ -521,3 +628,8 @@ if __name__ == "__main__":
         builder.tool_mem = ToolMem(tool_node_path=node_path, tool_edge_path=edge_path)
         result = builder.build_from_node_file(first_n=first_n)
         return result
+
+    # tool_mem = ToolMem()
+    # tool_mem.load_tools_from_json_list("./eval/earth_agent/earth_tools.json")
+
+    build_graph_from_node_file(initial_model="qwen3-max", sys_prompt=graph_build_prompt, node_path="./tools_graph/node.json", edge_path="./tools_graph/edge.json")

@@ -3,23 +3,46 @@ from typing import Dict, List, Any, Tuple, Optional
 import numpy as np
 import requests
 import yaml
+from collections import deque
 from Base import ToolNode, ToolEdge
 
-# -------------------------------
-# ToolMem：统一用“工具名”为 key 的节点表；修复 connected_tools；兼容 dict/对象
-# -------------------------------
+
 class ToolMem:
     """
     Agent 的 Tool-memory（图：节点=工具；边=逻辑/经验）
     """
 
-    def __init__(self, tool_node_path: Optional[str] = None, tool_edge_path: Optional[str] = None):
-        self.tool_node: Dict[str, Any] = {}   # 统一：key=工具名，value=dict 或 ToolNode
-        self.tool_edge: Dict[str, Any] = {}   # key="A->B"，value=ToolEdge 或 dict
+    def __init__(self, tool_node_path = "./tools_graph/node.json", tool_edge_path = "./tools_graph/edge.json"):
+        self.tool_node: Dict[str, Any] = {}
+        self.tool_edge: Dict[str, Any] = {}
         self.tool_node_path = tool_node_path
         self.tool_edge_path = tool_edge_path
 
     # ---------- 基础 IO ----------
+    def load_tools_from_json_list(self, path: str):
+
+        with open(path, "r", encoding="utf-8") as f:
+            json_list = json.load(f)
+        for item in json_list:
+            name = item.get("name") or item.get("tool_name")
+            if not name:
+                continue
+            vector = self._get_embedding(
+                item.get("description", "")
+            )
+            self.tool_node[name] = {
+                "name": name,
+                "description": item.get("description", ""),
+                "inputs": item.get("inputs", ""),
+                "outputs": item.get("outputs", ""),
+                "feedback": "",
+                "vector": vector
+            }
+
+        if self.tool_node_path:
+            self.save_nodes_to_file()
+        return f"{len(json_list)} tools loaded and saved to {self.tool_node_path}"
+
     def save_nodes_to_file(self) -> str:
         """保存工具节点到文件（以工具名为 key）"""
         serializable_nodes = {}
@@ -228,16 +251,91 @@ class ToolMem:
         return f"Tool '{tool_name}' feedback updated to {feedback}"
 
     # ---------- 检索 ----------
-    def get_similar_tools(self, query: str, top_k: int = 5) -> List[tuple]:
+    def get_similar_tools(
+        self,
+        query: str,
+        top_k: int,
+        use_graph: bool = True,
+        seed_k: Optional[int] = None,
+        depth: int = 2,
+        graph_lambda: float = 0.3,
+    ) -> List[tuple]:
         """
-        基于向量相似度检索相似工具（兼容 ToolNode/dict）
+        检索与 query 最相关的工具。
+
+        默认策略：优先深度检索（向量 + 图结构混合）：
+        1）先用向量相似度全局检索出若干种子工具（seed_k）
+        2）从这些种子出发，在工具图上做 BFS 扩展 depth 层，得到局部子图候选
+        3）对子图中的工具，用：combined_score = cos_sim + graph_lambda * graph_bonus 重新打分
+            - graph_bonus = 1 / (1 + hop_distance)，种子=1，1跳=0.5，2跳≈0.33
+        4）按 combined_score 排序，返回前 top_k
+
+        如果 use_graph=False，则退化为纯向量检索。
+        返回: [(tool_name, score, node_dict_or_ToolNode), ...]
+        """
+        if not self.tool_node:
+            return []
+
+        # 纯向量模式
+        if not use_graph:
+            return self._get_similar_tools_flat(query, top_k)
+
+        # 1) 先做一次全局向量检索，拿到种子
+        base_scores = self._get_similar_tools_flat(query, top_k=None)  # 全量排序
+        if not base_scores:
+            return []
+
+        if seed_k is None:
+            seed_k = max(top_k, 5)
+
+        seeds = [name for name, _, _ in base_scores[:seed_k]]
+
+        # 2) 从种子出发，在图中 BFS 扩展 depth 层，得到候选及最短 hop 距离
+        dist_map = self._graph_expand_from_seeds(seeds, depth)
+
+        # 3) 重新打分：向量相似度 + 图结构 bonus
+        candidates: List[Tuple[str, float, Any, float, Optional[int]]] = []
+
+        # 先把 base_scores 转成 dict，方便查 base_sim
+        base_score_dict = {name: (sim, node) for name, sim, node in base_scores}
+
+        for name, (base_sim, node) in base_score_dict.items():
+            if name not in dist_map:
+                # 不在扩展子图中的工具可以忽略，优先子图
+                continue
+            hop_dist = dist_map[name]  # 0, 1, 2, ...
+            graph_bonus = 1.0 / (1.0 + hop_dist)  # 种子=1, 1-hop=0.5, 2-hop≈0.33
+            combined = base_sim + graph_lambda * graph_bonus
+            candidates.append((name, combined, node, base_sim, hop_dist))
+
+        # 如果图太稀疏，候选数量不足 top_k，则用剩余的纯向量结果补齐
+        if len(candidates) < top_k:
+            used = {c[0] for c in candidates}
+            for name, base_sim, node in base_scores:
+                if name in used:
+                    continue
+                candidates.append((name, base_sim, node, base_sim, None))
+                if len(candidates) >= top_k:
+                    break
+
+        # 4) 最终排序并截断
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        top = candidates[:top_k]
+
+        # 对外只暴露 (tool_name, combined_score, node)
+        return [(name, score, node) for name, score, node, _, _ in top]
+
+    def _get_similar_tools_flat(self, query: str, top_k: Optional[int] = 5) -> List[tuple]:
+        """
+        纯向量相似度检索（原始实现提炼到这里）。
+        当 top_k=None 时返回全量排序结果。
         """
         if not self.tool_node:
             return []
 
         query_vec = self._get_embedding(query)
 
-        sims = []
+        sims: List[Tuple[str, float, Any]] = []
         for tool_name, node in self.tool_node.items():
             if isinstance(node, ToolNode):
                 vec = node.vector
@@ -247,36 +345,53 @@ class ToolMem:
             sims.append((tool_name, sim, node))
 
         sims.sort(key=lambda x: x[1], reverse=True)
+
+        if top_k is None:
+            return sims
         return sims[:top_k]
 
-    def get_subgraph(self, tool_name: str, depth: int = 2) -> Dict[str, List[str]]:
+    def _graph_expand_from_seeds(
+        self,
+        seeds: List[str],
+        depth: int = 2,
+    ) -> Dict[str, int]:
         """
-        BFS 子图
-        """
-        subgraph = {tool_name: {"connected_tools": [], "edges": []}}
-        visited = set()
-        to_visit = [tool_name]
-        current_depth = 0
+        从多个种子工具出发，在工具图上做 BFS 扩展，得到：
+            {tool_name: 最短 hop 距离}
 
-        while to_visit and current_depth < depth:
-            nxt = []
-            for tool in to_visit:
-                if tool in visited:
+        depth: 最大 BFS 深度（0=只包含种子本身，1=再加一层邻居，以此类推）
+        """
+        dist_map: Dict[str, int] = {}
+
+        for seed in seeds:
+            if seed not in self.tool_node:
+                continue
+
+            # 如果这个种子已经有更短距离记录，就跳过
+            if seed in dist_map and dist_map[seed] <= 0:
+                continue
+
+            q = deque()
+            q.append((seed, 0))
+
+            while q:
+                node, d = q.popleft()
+                # 如果已有更短路径，跳过
+                if node in dist_map and dist_map[node] <= d:
                     continue
-                visited.add(tool)
-                connected_tools = self.get_connected_tools(tool)
-                subgraph.setdefault(tool, {"connected_tools": [], "edges": []})
-                subgraph[tool]["connected_tools"] = connected_tools
+                dist_map[node] = d
 
-                for connected_tool, direction, w in connected_tools:
-                    edge_key = f"{tool}->{connected_tool}" if direction == "outgoing" else f"{connected_tool}->{tool}"
-                    if edge_key in self.tool_edge:
-                        subgraph[tool]["edges"].append(self.tool_edge[edge_key])
-                    nxt.append(connected_tool)
-            to_visit = nxt
-            current_depth += 1
+                if d >= depth:
+                    continue
 
-        return subgraph
+                neighbors = self.get_connected_tools(node)
+                for nb, _, _ in neighbors:
+                    # 下一层
+                    nd = d + 1
+                    if nb not in dist_map or nd < dist_map[nb]:
+                        q.append((nb, nd))
+
+        return dist_map
 
     def get_connected_tools(self, tool_name: str) -> List[Tuple[str, str, Optional[float]]]:
         """

@@ -1,7 +1,8 @@
-qwen_2.5:
+qwen3-max:
+  use_responses_api: true
   client_kwargs:
-    api_key: ""
-    base_url:
+    api_key: "sk-cb584345008f4254b76f11ee6278b264"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   generation:
     max_tokens: 4096
     temperature: 0.0

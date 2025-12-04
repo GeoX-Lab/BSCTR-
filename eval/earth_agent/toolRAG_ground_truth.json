@@ -1,0 +1,2142 @@
+{
+    "1": {
+        "question": "Calculate TVDI based on temperature and vegetation data (NDVI and LST) and analyze the annual trend",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_tif_average",
+            "compute_linear_trend",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "2": {
+        "question": "Calculate TVDI for the Sichuan Plain agricultural area and analyze the percentage of areas where TVDI exceeds 0.75",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "3": {
+        "question": "Based on temperature and vegetation indicators (NDVI and LST) in the Yellow River Basin from June to September 2023, calculate the Temperature-Vegetation Dryness Index (TVDI) for each time point, and identify and count the number of spikes in the drought index.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_tvdi",
+            "count_spikes_from_values",
+            "get_filelist"
+        ]
+    },
+    "4": {
+        "question": "Using temperature and vegetation data (NDVI and LST) on August 13, 2022, calculate the spatial distribution of the Temperature-Vegetation Dryness Index (TVDI) in the urban area of Chengdu and its surroundings, and compute the percentage of pixels with TVDI values greater than 0.75 to identify potential urban drought hotspots.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "5": {
+        "question": "Based on temperature and vegetation indices (NDVI and LST) in the Central Valley of California, U.S., from May to October 2021, first list the input TIFF files, then calculate the Temperature-Vegetation Dryness Index (TVDI) for each date, compute the proportion of pixels with TVDI values exceeding 0.7 for each image, and finally count the number of times this proportion surpassed 40%, indicating widespread extreme drought.",
+        "tools_used": [
+            "compute_tvdi",
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist"
+        ]
+    },
+    "6": {
+        "question": "Based on Landsat 8 thermal band 10 and reflectance bands (Red and NIR) data over New York City from 2018 to 2022, first list the input TIFF files, then calculate NDVI and use the single-channel NDVI-based method to estimate land surface temperature (LST). Compute the mean LST for each image, derive the annual average LST, and finally calculate the linear trend of the annual averages to estimate the approximate rate of change.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist",
+            "lst_single_channel",
+            "mean"
+        ]
+    },
+    "7": {
+        "question": "Using Landsat 8 TOA data (Band 10) in Death Valley National Park during the 2021 heatwave season (June–September), first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. For each image, compute the proportion of pixels with LST values exceeding 315 K, and finally count the number of days when more than 50% of the area surpassed this temperature threshold.",
+        "tools_used": [
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "8": {
+        "question": "Based on brightness temperature and reflectance data from Landsat 8 Band 10, Band 4, and Band 5 on August 11, 2021, in the Okavango Delta, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. Finally, compute the proportion of the area where LST values were below 300 K.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "9": {
+        "question": "Based on Landsat 8 Band 10 (brightness temperature) data from January to December 2021 in the Chicago metropolitan area, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. For each image, compute the proportion of pixels with LST values above 300 K, and finally count the number of days when more than 25% of the urban area exceeded this temperature threshold.",
+        "tools_used": [
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "10": {
+        "question": "Based on brightness temperature and reflectance values from Landsat 8 Band 10, Band 4, and Band 5 over the Black Forest region in Germany on July 29, 2021, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. Next, compute the average LST within forested areas (NDVI > 0.7) and non-vegetated areas (NDVI < 0.2), and finally calculate the temperature difference to determine how much cooler the forested area was compared to its surroundings.",
+        "tools_used": [
+            "calculate_mean_lst_by_ndvi",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "11": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Tokyo metropolitan area on August 10, 2022, first list the TIFF files, then estimate land surface temperature (LST) using the split-window method, and finally calculate the proportion of the area where LST exceeds 310K.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "12": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Murray–Darling Basin in Australia during January 2023, first list the input TIFF files, then estimate land surface temperature (LST) using the split-window method. For each day, calculate the proportion of the area with LST values exceeding 310 K, and finally determine how many days had more than 30% of the area experiencing such heat stress conditions on crops.",
+        "tools_used": [
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "13": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Sahara Desert region from 2014 to 2023, first list the input TIFF files, then estimate land surface temperature (LST) using the split-window algorithm. Next, calculate the daily average LST, derive the annual average LST, and finally compute the linear trend of the annual averages to assess long-term temperature changes in the region.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist",
+            "lst_multi_channel",
+            "mean"
+        ]
+    },
+    "14": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Sahara Desert region from 2014 to 2023, first list the input TIFF files, then estimate land surface temperature (LST) using the split-window algorithm. Next, calculate the daily average LST, derive the annual average LST, and finally compute the linear trend of the annual averages to assess long-term temperature changes in the region.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "lst_multi_channel",
+            "mann_kendall_test",
+            "mean"
+        ]
+    },
+    "15": {
+        "question": "Based on thermal infrared Band 31 and Band 32 data over the Tibetan Plateau from May to September 2022, first list the input TIFF files, then estimate land surface temperature (LST) using the split-window method. Calculate the average LST for each day, and finally identify the date on which the maximum daily average LST occurs.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "16": {
+        "question": "Calculate atmospheric water vapor content in the Turpan region in 2020 based on surface reflectance data from MODIS bands b02 (0.865 μm), b05 (1.240 μm), b17 (0.905 μm), b18 (0.936 μm), and b19 (0.940 μm), and analyze drought conditions.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "17": {
+        "question": "Using MODIS surface reflectance from bands b02 (0.865 μm), b05 (1.240 μm), b17 (0.905 μm), b18 (0.936 μm), and b19 (0.940 μm), first list the input TIFF files, then estimate atmospheric absorption levels over the urban region of Hangzhou on August 10, 2021, using the band ratio method. Calculate the average atmospheric water vapor for that day, and finally compute the percentage of the area where absorption exceeds 115% of the urban mean, indicating potential moisture island effects.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean",
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "18": {
+        "question": "Using MODIS surface reflectance bands b02, b05, b17, b18, and b19 (corresponding to 0.865 μm, 1.240 μm, 0.905 μm, 0.936 μm, and 0.940 μm respectively) over the Loess Plateau from 2018 to 2022, first list the input TIFF files, then apply the band ratio method to estimate daily atmospheric water vapor. Calculate the daily averages, derive the annual mean values, and finally compute the linear trend of annual atmospheric absorption over the five-year period.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "19": {
+        "question": "Using MODIS bands b02, b05, b17, b18, and b19 (corresponding to 0.865 μm, 1.240 μm, 0.905 μm, 0.936 μm, and 0.940 μm respectively), monitor atmospheric absorption over the coast of Guangdong during the period from July 20 to 29, 2023.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_max",
+            "get_filelist"
+        ]
+    },
+    "20": {
+        "question": "Based on the daily atmospheric absorption indicator derived from MODIS bands b02, b05, b17, b18, and b19 over the Huang-Huai-Hai Plain during 2023, first list the input TIFF files, then apply the band ratio method to estimate daily atmospheric water vapor. Calculate the average water vapor content for each day, compare values between consecutive days, and identify the number of abrupt increase events (sudden spikes) that may be associated with storm occurrences.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean",
+            "count_spikes_from_values",
+            "get_filelist"
+        ]
+    },
+    "21": {
+        "question": "Process the TIF files in the working directory and calculate the percentage of pixels meeting the conditions.",
+        "tools_used": [
+            "calculate_multi_band_threshold_ratio",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "22": {
+        "question": "Using TES-derived land surface temperature and emissivity from ASTER Bands 10–14 on June 15, 2022, over the Los Angeles metropolitan area, identify and count pixels where LST exceeds 310 K and emissivity variation (Δε) exceeds 0.08, representing thermal hotspots linked to intense urban heating.",
+        "tools_used": [
+            "count_pixels_satisfying_conditions",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "23": {
+        "question": "Based on TES output from ASTER thermal bands on March 30, 2020, in the Sahara Desert region near Tamanrasset, Algeria, calculate the proportion of the area where emissivity variation (Δε) exceeds 0.06.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "24": {
+        "question": "Apply the TES algorithm to ASTER thermal data (Bands 10–14) acquired on March 24, 2020, to estimate land surface temperature. Compute the proportion of valid pixels where LST is greater than 288.5 K.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "25": {
+        "question": "Apply the TES algorithm to ASTER thermal data from June 15, 2022, to estimate LST and emissivity across the Los Angeles metro area. Identify pixels with LST > 300 K and compute the mean emissivity variation (Δε) within those high-temperature zones.",
+        "tools_used": [
+            "calculate_band_mean_by_condition",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "26": {
+        "question": "On December 23, 2022, use LST retrieved via the Three-Temperature Method (TTM) from ASTER Bands 10–12 to calculate the percentage of pixels exceeding 278 K over the specified region (as defined by polygon coordinates), in order to identify potential high fire risk areas under drought conditions.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "27": {
+        "question": "On December 23, 2022, using land surface temperature (LST) derived from the Three-Temperature Method (TTM) applied to ASTER Bands 10–12 (acquired at 10:30 AM local time), calculate the mean LST difference (ΔLST) between two vertically aligned regions that partially overlap in longitude (74.4°–75.1°E).",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "28": {
+        "question": "Using ASTER bands 10-12 data, calculate the Land Surface Temperature (LST) using the Three-Temperature Method (TTM), and compute the average temperature difference between urban and rural areas to assess the Urban Heat Island effect.",
+        "tools_used": [
+            "calculate_band_mean_by_condition",
+            "difference",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "29": {
+        "question": "Using ASTER Bands 10–12 data on April 13, 2022, the Three-Temperature Method (TTM) was applied to estimate Land Surface Temperature (LST) in two Australian Outback regions. Calculate the absolute difference in their average LST values.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "30": {
+        "question": "Based on land surface temperature (LST) retrieved using the Three-Temperature Method (TTM) from ASTER Bands 10–12 on August 1, 2020, over the defined Mediterranean coastal area near Barcelona, calculate the average daytime LST specifically within urban areas.",
+        "tools_used": [
+            "calc_batch_image_max",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "31": {
+        "question": "Calculate the average land surface temperature in the Taklamakan Desert area at 05:50 on February 23, 2020.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "32": {
+        "question": "Define an extreme temperature event as any day when the surface temperature derived from Band 31 and Band 32 using the split-window algorithm exceeds the overall monthly mean by more than 10%. Based on thermal data for the region surrounding Turpan, Xinjiang, from June 1 to June 30, 2021, list the relevant TIFF files, compute daily mean land surface temperatures (LST), calculate the overall mean for the month, and determine how many days exceeded the 10% threshold.",
+        "tools_used": [
+            "count_images_exceeding_mean_multiplier",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "33": {
+        "question": "Based on thermal Band 31 and 32 data acquired over irrigated farmland in northern Hebei on August 5, 2021, apply the split-window algorithm to estimate land surface temperature (LST). Classify the resulting temperature map into three thermal zones: low (< 295 K), medium (295–305 K), and high (> 305 K). Finally, calculate the percentage of the total area that falls into the high-temperature zone.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "34": {
+        "question": "Based on land surface temperature (LST) retrieved using the split-window algorithm from thermal Bands 31 and 32 over the urban area of Guangzhou between 2018 and 2023, calculate the annual average LST for each year. This includes listing the relevant TIFF files, applying the split-window algorithm to derive daily LST, and computing the annual mean LST for each year. Then identify the year with the highest average LST and report its value.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "35": {
+        "question": "Based on thermal Bands 31 and 32 from the central urban area of Wuhan on July 15, 2022, apply the split-window algorithm to retrieve land surface temperature (LST). Define high-temperature zones as areas where LST exceeds 310 K, then calculate the percentage of high-temperature area.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "36": {
+        "question": "Based on MODIS daytime and nighttime brightness temperature and emissivity data from Band 31 over the North American Great Plains in July 2023, identify extreme heat days as those with daytime land surface temperature (LST) exceeding 315 K. Calculate the percentage of extreme heat days during the month.",
+        "tools_used": [
+            "calc_batch_image_mean_threshold",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "37": {
+        "question": "Using MODIS daytime and nighttime brightness temperature and emissivity data from Band 31 over the Ganges River Basin during January 2021, identify nights when the nighttime land surface temperature (LST) dropped below 305 K. ",
+        "tools_used": [
+            "calc_batch_image_mean_threshold",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "38": {
+        "question": "Using thermal Bands 31 and 32 over the Sahara Desert for June 2020 and June 2021, estimate LST via the split-window algorithm. Compute the monthly average LST for each year and calculate the absolute difference.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "39": {
+        "question": "Using MODIS daytime brightness temperature and emissivity (Band 31) data over the southern edge of the Sahara during July 2023, calculate the number of days on which more than 30% of the region's pixels recorded daytime land surface temperatures (LST) exceeding 325 K.",
+        "tools_used": [
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "40": {
+        "question": "Using MODIS daytime brightness temperature and emissivity (Band 31) data over Central California during July of 2015 and 2023, calculate the change in the percentage of days when more than 40% of the region's pixels exhibited daytime land surface temperatures (LST) exceeding 310 K.",
+        "tools_used": [
+            "average_ratio_exceeding_threshold",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "41": {
+        "question": "Calculate and analyze the Apparent Thermal Inertia (ATI) changes in Cyprus between July 1st and July 15th, 2020.",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "42": {
+        "question": "Using Apparent Thermal Inertia (ATI) derived from satellite thermal bands and surface albedo, identify and visualize areas with the lowest ATI values (below 1.0), indicating potential drought stress across the Sahel region in May 2023. Then calculate the proportion of the region affected by these low ATI values.",
+        "tools_used": [
+            "ATI",
+            "calculate_threshold_ratio",
+            "get_filelist"
+        ]
+    },
+    "43": {
+        "question": "Based on Apparent Thermal Inertia (ATI) data derived from daytime and nighttime brightness temperature and albedo in the agricultural region of California's Central Valley during July 2022, thermal anomalies are defined as areas with ATI values below 1.2. The analysis involves listing the input TIFF files, calculating ATI for each day, and counting the number of days when thermal anomalies occurred.",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean_threshold",
+            "get_filelist"
+        ]
+    },
+    "44": {
+        "question": "Based on Apparent Thermal Inertia (ATI) calculated from daytime and nighttime brightness temperature and surface albedo over the urban area of Beijing, China from June 1 to September 30, 2019, list the input TIFF files, compute ATI for each pixel, analyze the monthly trend of ATI, and identify the month with the largest decrease in ATI.",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean_mean",
+            "get_filelist"
+        ]
+    },
+    "45": {
+        "question": "Based on Apparent Thermal Inertia (ATI) and daytime/nighttime brightness temperatures over California during the August 2022 wildfire events, the input TIFF files are first listed, followed by the calculation of ATI to estimate surface conditions, and then the percentage of the region with ATI values below 0.4 is identified, suggesting burned and dry soil.",
+        "tools_used": [
+            "ATI",
+            "calculate_threshold_ratio",
+            "get_filelist"
+        ]
+    },
+    "46": {
+        "question": " Based on temperature and vegetation reflectance data (NDVI and LST) from the agricultural region near Urumqi, Xinjiang in 2019, calculate the daily and annual average of the dryness indicator (TVDI), and describe the overall dryness characteristics for the year.",
+        "tools_used": [
+            "calc_batch_image_mean_max_min",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "47": {
+        "question": "Using MODIS LST and NDVI data over the Chengdu Plain on July 12, 2022, calculate TVDI and determine the mean TVDI value in areas where the LST exceeds 300 K.",
+        "tools_used": [
+            "calc_threshold_value_mean",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "48": {
+        "question": "Based on temperature and vegetation indicators (NDVI and LST) in the Yellow River Basin from June to September 2023, calculate the Temperature-Vegetation Dryness Index (TVDI) for each time point, and identify and count the number of spikes in the drought index.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "compute_linear_trend",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "49": {
+        "question": "Using temperature and vegetation data (NDVI and LST) on August 13, 2022, calculate the spatial distribution of the Temperature-Vegetation Dryness Index (TVDI) in the urban area of Chengdu and its surroundings, and compute the percentage of pixels with TVDI values greater than 0.75 to identify potential urban drought hotspots.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "compute_tvdi",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "50": {
+        "question": "Based on temperature and vegetation indices (NDVI and LST) in the Central Valley of California, U.S., from May to October 2021, first list the input TIFF files, then calculate the Temperature-Vegetation Dryness Index (TVDI) for each date, compute the proportion of pixels with TVDI values exceeding 0.7 for each image, and finally count the number of times this proportion surpassed 40%, indicating widespread extreme drought.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "compute_tvdi",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "51": {
+        "question": "Using Landsat 8 thermal and reflectance data in 2022 over New York City, estimate LST based on NDVI and thermal band 10 using the single-channel method, then calculate the average LST for summer and autumn, and determine the mean difference to assess seasonal temperature variation between these two periods.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "52": {
+        "question": "Using Landsat 8 TOA data (Band 10) in Death Valley National Park during June 2021, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. For each image, compute the proportion of pixels with LST values exceeding 315 K, and finally calculate the average proportion of these high-temperature pixels over the month of June.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "53": {
+        "question": "Based on brightness temperature and reflectance data from Landsat 8 Band 10, Band 4, and Band 5 on August 11, 2021, in the Okavango Delta, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. Finally, compute the proportion of the area where LST values exceeded 305 K.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "54": {
+        "question": "Based on Landsat 8 Band 10 (brightness temperature) data from June to August 2021 in the Chicago metropolitan area, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. For each image, calculate the proportion of pixels with LST greater than 305K, and finally count the number of days when the proportion of LST > 305K pixels exceeds 10%, which is the number of extreme heat days in summer.",
+        "tools_used": [
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "55": {
+        "question": "Based on brightness temperature and reflectance values from Landsat 8 Band 10, Band 4, and Band 5 over the Black Forest region in Germany on July 29, 2021, first list the input TIFF files, then calculate NDVI and estimate land surface temperature (LST) using the single-channel method. Next, compute the maximum LST within forested areas (NDVI > 0.7) and the maximum LST within non-vegetated areas (NDVI < 0.2), and finally calculate the difference between these two maximum values.",
+        "tools_used": [
+            "calculate_max_lst_by_ndvi",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "56": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Tokyo metropolitan area on August 10, 2022, first list the TIFF files, then estimate land surface temperature (LST) using the split-window method, and finally calculate the proportion of the area where LST is below 300K.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "57": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Murray–Darling Basin in Australia during January 2023, first list the input TIFF files, then estimate land surface temperature (LST) using the split-window method. For each day, calculate the proportion of the area with LST values exceeding 310 K, and finally compute the average proportion of these high-temperature pixels over the entire month.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "58": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Sahara Desert region in 2023, list the input TIFF files, estimate land surface temperature (LST) using the split-window algorithm, calculate the daily average LST, and count the number of days when the daily average LST exceeds 310K (extreme heat events).",
+        "tools_used": [
+            "calc_batch_image_mean_threshold",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "59": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Ganges Delta region in 2020, first list the input TIFF files, then estimate land surface temperature (LST) using the split-window method. Next, classify the data by season based on acquisition dates, and calculate the average LST for the autumn period (September to November) to characterize seasonal temperature conditions.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "60": {
+        "question": "Based on thermal Band 31 and Band 32 data over the Sahara Desert region from June to September 2018, list the input TIFF files, estimate land surface temperature (LST) using the split-window algorithm, and calculate the average LST over the entire four-month period.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "get_filelist",
+            "lst_multi_channel"
+        ]
+    },
+    "61": {
+        "question": "Based on MODIS surface reflectance data of bands b02, b05, b17, b18, and b19 in Turpan, Xinjiang in July 2020, first list the input TIFF files, then estimate daily atmospheric water vapor using the band ratio method, and finally calculate the monthly mean for July.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean_mean",
+            "get_filelist"
+        ]
+    },
+    "62": {
+        "question": "Using MODIS surface reflectance from bands b02 (0.865 μm), b05 (1.240 μm), b17 (0.905 μm), b18 (0.936 μm), and b19 (0.940 μm), first list the input TIFF files, then estimate atmospheric absorption levels over the urban region of Hangzhou on August 10, 2021, using the band ratio method. Calculate the average atmospheric water vapor for that day, and finally compute the percentage of the area where absorption exceeds 115% of the urban mean, indicating potential moisture island effects.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean_mean",
+            "calculate_threshold_ratio",
+            "get_filelist"
+        ]
+    },
+    "63": {
+        "question": "Using MODIS surface reflectance bands b02, b05, b17, b18, and b19 (corresponding to 0.865 μm, 1.240 μm, 0.905 μm, 0.936 μm, and 0.940 μm respectively) over the Loess Plateau from 2018 to 2022, please complete the following tasks step by step: 1) List all input TIFF files; 2) Estimate daily atmospheric water vapor using the band ratio method; 3) Calculate daily mean water vapor; 4) Compute annual mean values; 5) Analyze the interannual trend of atmospheric water vapor over the five-year period.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean_mean",
+            "get_filelist"
+        ]
+    },
+    "64": {
+        "question": "Using MODIS bands b02, b05, b17, b18, and b19 (corresponding to 0.865 μm, 1.240 μm, 0.905 μm, 0.936 μm, and 0.940 μm respectively), monitor atmospheric absorption over the coast of Guangdong during the period from July 20 to 29, 2023.",
+        "tools_used": [
+            "band_ratio",
+            "count_images_exceeding_mean_multiplier",
+            "get_filelist"
+        ]
+    },
+    "65": {
+        "question": "Based on the daily atmospheric absorption indicator derived from MODIS bands b02, b05, b17, b18, and b19 over the Huang-Huai-Hai Plain during 2023, first list the input TIFF files, then apply the band ratio method to estimate daily atmospheric water vapor. Calculate the average water vapor content for each day, compare values between consecutive days, and identify the number of abrupt increase events (sudden spikes) that may be associated with storm occurrences.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean_mean",
+            "get_filelist"
+        ]
+    },
+    "66": {
+        "question": "Process the TIF files in the working directory and calculate the percentage of pixels meeting the conditions.",
+        "tools_used": [
+            "calculate_multi_band_threshold_ratio",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "67": {
+        "question": "On June 15, 2022, over the Los Angeles metropolitan area, use TES-derived LST and surface emissivity from ASTER Bands 10–14 to construct a pixel-wise thermal response index (LST/ε). Then calculate the regional average of this index to assess the typical heat retention characteristics of surface materials in the area.",
+        "tools_used": [
+            "get_filelist",
+            "image_division_mean",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "68": {
+        "question": "Based on TES output from ASTER thermal bands on March 30, 2020, in the Sahara Desert region near Tamanrasset, Algeria, calculate the proportion of the area where emissivity variation (Δε) exceeds 0.06.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "temperature_emissivity_separation"
+        ]
+    },
+    "69": {
+        "question": "Apply the TVDI method to NDVI and LST data from 2022 to detect dry areas (TVDI > 0.75) and compute their average land surface temperature.",
+        "tools_used": [
+            "calc_threshold_value_mean",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "70": {
+        "question": "Apply the TVDI method to NDVI and LST data from 2022 to detect dry areas (TVDI > 0.75) and compute their average land surface temperature.",
+        "tools_used": [
+            "calc_threshold_value_mean",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "71": {
+        "question": "Using ASTER Bands 10–12 data from December 23, 2022, apply the Three-Temperature Method (TTM) to retrieve pixel-wise LST over the specified region. Then calculate the 70th percentile temperature of all LST values in that region.",
+        "tools_used": [
+            "get_filelist",
+            "get_percentile_value_from_image",
+            "ttm_lst"
+        ]
+    },
+    "72": {
+        "question": "On December 23, 2022, using land surface temperature (LST) derived from the Three-Temperature Method (TTM) applied to ASTER Bands 10–12 (acquired at 10:30 AM local time), calculate the mean LST difference (ΔLST) between two vertically aligned regions that partially overlap in longitude (74.4°–75.1°E).",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "calculate_threshold_ratio",
+            "difference",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "73": {
+        "question": "Using ASTER bands 10-12 data, calculate the Land Surface Temperature (LST) using the Three-Temperature Method (TTM) and calculate the maximum LST for the entire study area.",
+        "tools_used": [
+            "calc_batch_image_max",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "74": {
+        "question": "Using ASTER Bands 10–12 data on April 13, 2022, the Three-Temperature Method (TTM) was applied to estimate Land Surface Temperature (LST) in two Australian Outback regions. Calculate the absolute difference in the percentage of pixels where LST exceeds 295 K.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "difference",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "75": {
+        "question": "Based on land surface temperature (LST) retrieved using the Three-Temperature Method (TTM) from ASTER Bands 10–12 on August 1, 2020, over the defined Mediterranean coastal area near Barcelona, calculate the average daytime LST specifically within urban areas.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "ttm_lst"
+        ]
+    },
+    "76": {
+        "question": "Calculate the average land surface temperature in the Taklamakan Desert area at 05:50 on February 23, 2020.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "77": {
+        "question": "Define an extreme temperature event as any day when the surface temperature derived from Band 31 and Band 32 using the split-window algorithm exceeds the overall monthly mean by more than 10%. Based on thermal data for the region surrounding Turpan, Xinjiang, from June 1 to June 30, 2021, list the relevant TIFF files, compute daily mean land surface temperatures (LST), calculate the overall mean for the month, and determine how many days exceeded the 10% threshold.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "78": {
+        "question": "Based on thermal Band 31 and 32 data acquired over irrigated farmland in northern Hebei on August 5, 2021, apply the split-window algorithm to estimate land surface temperature (LST). Classify the resulting temperature map into three thermal zones: low (< 295 K), medium (295–305 K), and high (> 305 K). Finally, calculate the percentage of the total area that falls into the high-temperature zone.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "79": {
+        "question": "Using thermal Bands 31 and 32 over the urban area of Guangzhou during 2023, first list all relevant TIFF files from that year. Then, apply the split-window algorithm to compute daily land surface temperature (LST). Based on the results, calculate the average LST for each meteorological season (spring: March–May, summer: June–August, autumn: September–November, winter: December–February). Finally, calculate the difference in average LST between summer and autumn to assess seasonal temperature variation.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "80": {
+        "question": "Based on thermal Bands 31 and 32 data from the central urban area of Wuhan on July 15, 2022, first list the relevant TIFF files, then apply the split-window algorithm to retrieve land surface temperature (LST). Define the high-temperature zone as pixels where LST exceeds 310 K, and the low-temperature zone as pixels where LST is below 295 K. Calculate the percentage of pixels in both zones and compute their difference.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "difference",
+            "get_filelist",
+            "split_window"
+        ]
+    },
+    "81": {
+        "question": "Based on MODIS daytime and nighttime brightness temperature and emissivity data from Band 31 over the North American Great Plains in July 2023, calculate the average proportion of pixels each day where the daytime land surface temperature (LST) exceeds 315 K. This includes listing the relevant TIFF files, applying the MODIS day–night algorithm to derive LST, and computing the daily proportions before averaging them over the month.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "82": {
+        "question": "Using MODIS Day and Night brightness temperature and emissivity Band 31 data over the Ganges River Basin during January 2021, identify the number of days when over 35% of the region had daytime LST values greater than 310 K.",
+        "tools_used": [
+            "count_images_exceeding_threshold_ratio",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "83": {
+        "question": "Calculate the monthly average LST for each year and then compute the difference in average monthly LST between 2015 and 2023 to analyze temperature changes over this period",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "84": {
+        "question": "Using MODIS daytime brightness temperature and emissivity (Band 31) data over the southern edge of the Sahara during July 2023, computing the daily proportion of pixels above 315 K, and finally calculating the average of these proportions over the month.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "85": {
+        "question": "Calculate the monthly average LST for each year and then compute the difference in average monthly LST between 2015 and 2023 to analyze temperature changes over this period",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist",
+            "modis_day_night_lst"
+        ]
+    },
+    "86": {
+        "question": "Calculate the difference in average Apparent Thermal Inertia (ATI) over the Mediterranean island of Cyprus between July 5 and July 10, 2020.",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "87": {
+        "question": "Using Apparent Thermal Inertia (ATI) derived from satellite thermal bands and surface albedo, compute the monthly average ATI across the Sahel region for May 2023",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean_mean",
+            "get_filelist"
+        ]
+    },
+    "88": {
+        "question": "Based on Apparent Thermal Inertia (ATI) derived from daytime and nighttime brightness temperatures and surface albedo in California’s Central Valley during July 2022, calculate the proportion of pixels each day that exceed 115% of the monthly mean ATI value. ",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean_mean",
+            "calculate_threshold_ratio",
+            "get_filelist"
+        ]
+    },
+    "89": {
+        "question": "Based on Apparent Thermal Inertia (ATI) calculated from daytime and nighttime brightness temperature and surface albedo over the urban area of Beijing, China during July 2019, list the input TIFF files, compute ATI for each day, and calculate the average ATI value for the month.",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean_mean",
+            "get_filelist"
+        ]
+    },
+    "90": {
+        "question": "Based on Apparent Thermal Inertia (ATI) calculated from daytime and nighttime brightness temperatures over California during the August 2022 wildfire events, list the input TIFF files, compute daily ATI, calculate the monthly mean ATI, and determine the average proportion of pixels with daily ATI values below 80% of the monthly mean.",
+        "tools_used": [
+            "ATI",
+            "calc_batch_image_mean_mean",
+            "calculate_threshold_ratio",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "91": {
+        "question": "Calculate the proportion of pixels with TVDI > 0.7 in June and August 2023 over the Yellow River Basin, then compute the absolute difference between these two values.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "compute_tvdi",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "92": {
+        "question": "Compute the average TVDI over the Central Valley of California during the summer months (June to August) of 2021 using NDVI and LST data.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "93": {
+        "question": "Using Landsat 8 Band 10 and reflectance bands (Red and NIR) over New York City in 2018, estimate land surface temperature with the NDVI-based single-channel method, and quantify the absolute difference between the overall mean LST and the mean LST in regions with NDVI greater than 0.7.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "calculate_mean_lst_by_ndvi",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "94": {
+        "question": "Using Landsat 8 Band 10 and reflectance bands (Red and NIR) over New York City for April 2018 and April 2019, estimate land surface temperature with the NDVI-based single-channel method. Calculate the mean LST for each April and determine the absolute difference between the two values.",
+        "tools_used": [
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "95": {
+        "question": "Using MODIS bands over the Turpan region in March and August 2020, estimate atmospheric water vapor via the band ratio method and quantify the absolute difference between the monthly mean values.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "96": {
+        "question": "Estimate daily atmospheric water vapor using the band ratio method applied to MODIS surface reflectance bands b02, b05, b17, b18, and b19 over the Loess Plateau in January 2018 and January 2022. Determine the 70th percentile of daily averages for each year, and compute their absolute difference to quantify the interannual change in atmospheric moisture levels.",
+        "tools_used": [
+            "band_ratio",
+            "difference",
+            "get_filelist",
+            "get_percentile_value_from_image"
+        ]
+    },
+    "97": {
+        "question": "Based on daily atmospheric absorption indicators derived from MODIS b02, b05, b17, b18, and b19 over the Huang-Huai-Hai Plain in 2023, estimate daily atmospheric water vapor using the band ratio method. Compute the annual average and the summer (June–August) average, then calculate the absolute difference to assess seasonal variation in atmospheric moisture.",
+        "tools_used": [
+            "band_ratio",
+            "calc_batch_image_mean_mean",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "98": {
+        "question": "Over the Yellow River Basin in August 2023, calculate TVDI using NDVI and LST data. Identify all pixels with TVDI > 0.7, then compute the mean NDVI of these pixels to assess vegetation status in drought-affected regions.",
+        "tools_used": [
+            "calc_threshold_value_mean",
+            "compute_tvdi",
+            "get_filelist"
+        ]
+    },
+    "99": {
+        "question": "Using Landsat 8 Band 10 and reflectance bands (Red and NIR) over New York City for June–July of 2020 and 2021, estimate LST using the NDVI-based single-channel method. Compute the proportion of pixels with LST > 305 K for each year, then calculate the absolute difference between the two yearly values.",
+        "tools_used": [
+            "calculate_threshold_ratio",
+            "difference",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "100": {
+        "question": "Using Landsat 8 Band 10 and reflectance bands (Red and NIR) for October 22, 2021, estimate LST with the NDVI-based single-channel method. Then calculate the proportion of pixels meeting both conditions: LST > 290 K and NDVI > 0.6.",
+        "tools_used": [
+            "calculate_intersection_percentage",
+            "get_filelist",
+            "lst_single_channel"
+        ]
+    },
+    "101": {
+        "question": "Based on the rainfall data of Aracaju and Lima from January 1 to January 31, 2025, calculate the average unit area rainfall of Aracaju and Lima during this period, and give the difference between the two. The relevant data is stored in benchmark/data/question101.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "102": {
+        "question": "Based on January nighttime light intensity of Mumbai (from 2013 to 2024), first compute the mean nighttime-light intensity of each year and then estimate the trend via a linear regression of these mean values. The relevant data is stored in benchmark/data/question102.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist"
+        ]
+    },
+    "103": {
+        "question": "Based on the nighttime light intensity data of Paris and Venice from September 2015 to December 2015, calculate the average unit area light intensity of Paris and Venice during this period, and give the difference between the two. The relevant data is stored in benchmark/data/question103.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "104": {
+        "question": "Using nighttime light-intensity data for Seoul from the first half of 2013 and the first half of 2019, first compute and output the mean light-intensity for each period by averaging all pixels in each image. Then compare the mean value from the first half of 2019 with that from the first half of 2013 to assess the region's development and highlight the difference between the two periods. The relevant data is stored in benchmark/data/question104.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "105": {
+        "question": "Based on the nighttime light intensity in London in 2015 and 2020, and the non-residential building volume data for the same years, first calculate the annual average nighttime light intensity in 2015 and output the mean map, and then calculate the annual average nighttime light intensity in 2020 and output the mean map. Then, calculate the total sum of pixel values from the 2015 annual mean nighttime light image, and separately calculate the total sum of pixel values from the 2020 annual mean nighttime light image. Next, compute the total non-residential building volume in 2015, and compute the total non-residential building volume in 2020. Then, first calculate the average nighttime light intensity per unit of non-residential building volume in 2015, and then calculate the average nighttime light intensity per unit of non-residential building volume in 2020. Based on the average nighttime light intensity of non-residential building volume, determine the commercial energy saving in London over the five-year period, and give the percentage of change. The relevant data is stored in benchmark/data/question105.",
+        "tools_used": [
+            "calc_batch_image_sum",
+            "calculate_tif_average",
+            "division",
+            "get_filelist",
+            "percentage_change"
+        ]
+    },
+    "106": {
+        "question": "Based on the nighttime light intensity in Durban (2013 vs 2021), calculate the change in hotspot proportion and analyze regional development.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "107": {
+        "question": "Using NDVI data for Coral Gables (Q1 vs. Q3 2021), calculate the difference between quarterly mean NDVI values.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "108": {
+        "question": "Using vegetation-coverage data for Rosario from January to June 2021, report the maximum percentage increase observed. The relevant data is stored in benchmark/data/question108.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "max_value_and_index",
+            "percentage_change"
+        ]
+    },
+    "109": {
+        "question": "Based on vegetation coverage changes in the Northeast Plain (Apr-Aug 2021), report the maximum percentage increase observed.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "max_value_and_index",
+            "percentage_change"
+        ]
+    },
+    "110": {
+        "question": "Based on the precipitation index data of the Tibetan Plateau from September to December 2021, calculate the average precipitation index and analyze the trend of precipitation changes.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "111": {
+        "question": "Compare the average rainfall in Colima and Boston (July 2018) and calculate the difference.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "112": {
+        "question": "Based on January nighttime light intensity of Leon (2013-2024), compute the annual mean intensity and estimate the linear trend. The relevant data is stored in benchmark/data/question112.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist"
+        ]
+    },
+    "113": {
+        "question": "Based on the vegetation coverage data of Yellowstone National Park (June 1 - October 31, 2021), calculate the maximum percentage decrease in vegetation coverage. The relevant data is stored in benchmark/data/question113.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "min_value_and_index",
+            "percentage_change"
+        ]
+    },
+    "114": {
+        "question": "Based on the nighttime light intensity data of Mtwara and Santiago de Chile from January 2015 to March 2015, calculate the average unit area light intensity of Mtwara and Santiago de Chile during this period, and give the difference between the two. The relevant data is stored in benchmark/data/question114.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "115": {
+        "question": "Based on the nighttime light intensity data of Juba and Burns from August 2017 to September 2017, calculate the average unit area light intensity of both regions during this period, and give the difference between the two. The relevant data is stored in benchmark/data/question115.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "116": {
+        "question": "Using nighttime light-intensity data for Hibbing from January to April 2013 and January to April 2018, first compute and output the mean light-intensity for each period by averaging all pixels in each image. Then compare the mean value from January–April 2018 with that from January–April 2013 to assess the region's development and highlight the difference between the two periods. The relevant data is stored in benchmark/data/question116.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "117": {
+        "question": "Using nighttime light-intensity data for Whitehorse from October to December 2014 and October to December 2019, first compute and output the mean light-intensity for each period by averaging all pixels in each image. Then compare the mean value from January–April 2014 with that from January–April 2019 to assess the region's development and highlight the difference between the two periods. The relevant data is stored in benchmark/data/question117.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "118": {
+        "question": "Based on the vegetation coverage data of the Sahara Desert in Algeria (March 1 - August 31, 2022), evaluate the kurtosis of the data distribution and classify its shape. The relevant data is stored in benchmark/data/question118.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kurtosis"
+        ]
+    },
+    "119": {
+        "question": "Based on the vegetation coverage data of Shennongjia Forest Reserve (April-October 2022), identify the date with maximum hotspot coverage (areas with values 50% higher than average) and report its proportion. The relevant data is stored in benchmark/data/question119.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "calculate_tif_difference",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "120": {
+        "question": "Based on NDVI data from Xilingol Grassland (May-Sep 2022), calculate the maximum proportion of areas exceeding the annual mean NDVI threshold. The relevant data is stored in benchmark/data/question120.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "get_filelist",
+            "max_value_and_index",
+            "mean"
+        ]
+    },
+    "121": {
+        "question": "Based on Landsat 9 Band 10 thermal infrared data for Singapore (2023-11-22), calculate the mean surface temperature in Celsius. The relevant data is stored in F:/EarthLMM-question-89/data/question121.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist"
+        ]
+    },
+    "122": {
+        "question": "Based on sur_refl_b01 data of Taihu Lake from 2022-01-01 to 2022-12-31, calculate water turbidity and generate distribution maps, compute weekly mean turbidity values, and conduct short-term trend analysis using Mann-Kendall method. The relevant data is stored in benchmark/data/question122.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_water_turbidity_ntu",
+            "get_filelist",
+            "mann_kendall_test",
+            "mean"
+        ]
+    },
+    "123": {
+        "question": "Based on the daily MODIS sur_refl_b01 data of Lake Baikal (July 1-30, 2022), analyze water turbidity dynamics. Define areas with daily turbidity increases exceeding 30% as severely polluted zones, calculate their spatial coverage, and identify the peak pollution date during summer thermal stratification.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "124": {
+        "question": "Based on the sur_refl_b01 data of Dongting Lake from September 1 to September 29, 2022, calculate daily water turbidity variations, derive turbidity per unit area (per km²), and identify the most polluted 3-day period during this early autumn dry season. The relevant data is stored in F:/EarthLMM-question-89/data/question124.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_water_turbidity_ntu",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "125": {
+        "question": "Define the area where NDWI is greater than 0.3 as a water body. Based on the sur_refl_b02 and sur_refl_b04 data of Lake Geneva in August 2022, derive the water body indicator NDWI, calculate the daily water body proportion of the lake, and identify the day with the highest NDWI value during this month. The relevant data is stored in benchmark/data/question125.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "126": {
+        "question": "Based on the sur_refl_b02 and sur_refl_b07 data in New South Wales, Australia from October 1 to December 31, 2023, calculate the NBR index over time, compute the average of the daily NBR index, and use Sen's Slope to assess the magnitude of wildfire trends in the region during this period. The relevant data is stored in benchmark/data/question126.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_nbr",
+            "get_filelist",
+            "mean",
+            "sens_slope"
+        ]
+    },
+    "127": {
+        "question": "Based on MODIS sur_refl_b02 (NIR) and sur_refl_b07 (SWIR) data of Cape Town (Nov-Dec 2024), analyze NBR (Normalized Burn Ratio) to identify fire hotspots (NBR < -0.25) and determine their primary directional concentration. The relevant data is stored in benchmark/data/question127.",
+        "tools_used": [
+            "analyze_hotspot_direction",
+            "calc_batch_image_hotspot_tif",
+            "calculate_nbr",
+            "get_filelist"
+        ]
+    },
+    "128": {
+        "question": "Based on daily sur_refl_b02 (NIR) and sur_refl_b07 (SWIR) satellite data in the Congo Basin, Africa from January 1 to March 31, 2024, calculate the NBR index and analyze its temporal variation characteristics during this time window. The relevant data is stored in benchmark/data/question128.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_nbr",
+            "get_filelist",
+            "mann_kendall_test",
+            "mean"
+        ]
+    },
+    "129": {
+        "question": "Calculate the mean NDSI (Normalized Difference Snow Index) for the Tibetan Plateau on July 1, 2021, using MODIS surface reflectance bands (sur_refl_b04 and sur_refl_b06). Round the result to three decimal places.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "get_filelist"
+        ]
+    },
+    "130": {
+        "question": "Based on MODIS sur_refl_b04 and sur_refl_b06 data of the Canadian Rockies (2020 vs. 2022), analyze NDSI (Normalized Difference Snow Index) changes to assess snow cover variation.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "difference",
+            "get_filelist",
+            "mean",
+            "percentage_change"
+        ]
+    },
+    "131": {
+        "question": "Based on the sur_refl_b04 and sur_refl_b06 data in the Himalayas in 2022, calculate the NDSI of the region, calculate the annual average NDSI for 2022 and output the average map, define the NDSI decrease greater than 0.3 as extreme loss, and determine the proportion of the Himalayas' extreme loss area.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "calculate_tif_average",
+            "get_filelist"
+        ]
+    },
+    "132": {
+        "question": "Based on MODIS sur_refl_b04 and sur_refl_b06 data of the Tianshan Mountains (2019), analyze NDSI (Normalized Difference Snow Index) to determine deep snow cover areas (NDSI > mean + 10%).",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "calculate_tif_average",
+            "get_filelist"
+        ]
+    },
+    "133": {
+        "question": "Based on MODIS sur_refl_b04 and sur_refl_b06 data of the European Alps (2021 vs. 2023), analyze NDSI (Normalized Difference Snow Index) volatility changes through coefficient of variation (CV) comparison.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "coefficient_of_variation",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "134": {
+        "question": "Based on the SR_B3, SR_B5, and QA_PIXEL data of Lake Champlain from January 1, 2007 to January 1, 2009, first perform cloud masking using QA_PIXEL, then calculate the NDWI of the lake using SR_B3 (Green band) and SR_B5 (Near-Infrared band), compute the annual average NDWI for 2007 and 2008, and determine the trend of change in the average NDWI between these two years with the magnitude difference.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "135": {
+        "question": "Based on the SR_B3, SR_B5, and QA_PIXEL data of Lake Balkhash from January 1, 2008 to January 1, 2010, first perform cloud masking, then calculate the NDWI of the lake, compute the average NDWI at each time step, and use Linear Trend Analysis to determine the overall NDWI trend in the area.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "compute_linear_trend",
+            "get_filelist"
+        ]
+    },
+    "136": {
+        "question": "Define the area where NDWI drops by 30% as the severe water loss area. Based on SR_B3, SR_B5 and QA_PIXEL data of Dead Sea on 2008-04-15 and 2009-04-15, remove the cloud, calculate NDWI, and calculate the proportion of severe water loss area to the total water area at each time point. Find the day with the most severe water loss.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "get_filelist"
+        ]
+    },
+    "137": {
+        "question": "Based on Landsat B10 thermal infrared data of Lake Ontario (2022-12-16), calculate the mean surface water temperature in Celsius.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kelvin_to_celsius"
+        ]
+    },
+    "138": {
+        "question": "Based on the B10 data for London from January 1 to March 30, 2023 (in Kelvin), the daily surface temperature average is calculated, the average is converted to Celsius, and the average surface temperature in Celsius for the period is determined.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kelvin_to_celsius",
+            "mean"
+        ]
+    },
+    "139": {
+        "question": "Based on the B10 band data (in Kelvin) of Reykjavik, Iceland, from February 1 to April 30, 2024, calculate the daily surface temperature average, find the lowest surface temperature during this period, and give the date of the lowest surface temperature.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "min_value_and_index"
+        ]
+    },
+    "140": {
+        "question": "Based on the B10 band data (in Kelvin) of Chicago and Rome from 2024-01-01 to 2024-12-31, calculate the average surface temperature (in °C) and determine which city is warmer from January to December? How much higher is the average temperature?",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "141": {
+        "question": "Based on the sur_refl_b01 and sur_refl_b04 data of the Dead Sea, calculate the NDTI and compute the average NDTI values for August 2020 and August 2022. Determine whether ocean turbidity in the Dead Sea increased or decreased over this period, and report the magnitude of the change. The relevant data is stored in benchmark/data/question141.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_ndti",
+            "difference",
+            "get_filelist",
+            "mean",
+            "multiply"
+        ]
+    },
+    "142": {
+        "question": "Based on MODIS sur_refl_b01 (Red) and sur_refl_b04 (Green) data of the Mediterranean Sea (September 2022), analyze NDTI (Normalized Difference Turbidity Index) to identify the date with maximum marine pollution. The relevant data is stored in benchmark/data/question142.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_ndti",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "143": {
+        "question": "Based on MODIS sur_refl_b01 and sur_refl_b04 data of the Baltic Sea (June 2020 vs June 2022), analyze high turbidity areas (NDTI > 50% of average) and compare their spatial proportions.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "144": {
+        "question": "Based on the rainfall data of Cairns and Cooktown from January 31 to February 4, 2025, calculate the average unit area rainfall of Cairns and Cooktown during this period, and give the difference between the two. The relevant data is stored in benchmark/data/question144.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "145": {
+        "question": "Based on the precipitation index of the Congo Rainforest from May 1 to May 31, 2025. Calculate the daily average rainfall of the region during this period, and use a linear trend to determine the rainfall trend over these 31 days. The relevant data is stored in benchmark/data/question145.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "146": {
+        "question": "Based on the nighttime light intensity of Bhutan between June and August 2024. First calculate the unit area light intensity of Bhutan every day during June, then calculate the unit area light intensity of Bhutan every day during August. Then, determine which month has lower intensity, and give the difference between the two. The relevant data is stored in benchmark/data/question146.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "147": {
+        "question": "Based on the nighttime light intensity data of Yangtze River Delta region of China from June to September 2014 and from June to September 2024. First calculate the average light intensity of this region from June to September 2014 and output the mean map, then calculate the average light intensity of this region from June to September 2024 and output the mean map. Then calculate the mean of the night light intensity mean map in 2014, and then calculate the mean of the night light intensity mean map in 2024. Combined with mean value analysis, the development status of the region is analyzed and give the difference between the two. The relevant data is stored in benchmark/data/question147.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_tif_average",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "148": {
+        "question": "Based on the night light intensity in Los Angeles in 2015 and 2020, and the non-residential building volume data in the same years, calculate the average night light intensity per unit non-residential building volume in 2015 and 2020. Determined the commercial energy savings in Los Angeles over the five years and give the difference between the two.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calc_batch_image_sum",
+            "division",
+            "get_filelist",
+            "percentage_change"
+        ]
+    },
+    "149": {
+        "question": "Hotspots are defined as areas where pixel values are 50% higher than the mean. Based on the nighttime light intensity in Los Angeles in 2015 and 2020. Calculate the proportion of hotspots in the two period. Analyze the development of the region based on the proportion of hotspots in the two period and give the difference between the two.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "150": {
+        "question": "Based on the vegetation coverage data of the Taklamakan Desert from January 1 to December 30, 2020, find the date with the greatest percentage increase in vegetation coverage and report the corresponding percentage value.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "max_value_and_index",
+            "percentage_change"
+        ]
+    },
+    "151": {
+        "question": "Define platykurtic: Kurtosis value <2.5. mesokurtic: Kurtosis value between 2.5 and 3.5 leptokurtic: Kurtosis >3.5. Based on the vegetation coverage data of the Taklamakan Desert from January 1 to December 30, 2020, determine whether the data is platykurtic, mesokurtic, or leptokurtic.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kurtosis"
+        ]
+    },
+    "152": {
+        "question": "Define hotspot areas as areas that are 50% higher than the average value. Based on the vegetation coverage data of the Wind River Indian Preserve from January to December, 2021, calculate the changes in vegetation coverage data on adjacent dates, output a map, calculate the proportion of each hotspot area in the change map, and give the time with the largest proportion.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "calculate_tif_difference",
+            "get_filelist"
+        ]
+    },
+    "153": {
+        "question": "Based on the NDVI data of Wind River Indian from January 1, 2021 to December 30, 2021, the mean NDVI at each time was calculated, and then the mean NDVI for the whole year was calculated. The mean was set as the threshold, and the proportion of areas above the threshold at each sampling time was calculated and visualized in green in the figure.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "154": {
+        "question": "Based on sur_refl_b01 of Lake Van from 2022-01-01 to 2022-12-30, calculate water turbidity and save it as a map, calculate the average value of each water mixing image, and use Mann_Kendall to perform significant trend analysis.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_water_turbidity_ntu",
+            "get_filelist",
+            "mann_kendall_test"
+        ]
+    },
+    "155": {
+        "question": "Based on the sur_refl_b01 data of Lake Urmia from January 1 to December 30, 2022, calculate water turbidity over time. Compare the average turbidity of Lake Van between May 1, 2022 and August 1, 2022. Define areas with more than a 30% increase in turbidity as severely polluted, calculate the proportion of such areas relative to the entire lake for each date, and identify the day with the highest proportion of severe pollution.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "156": {
+        "question": "Based on the sur_refl_b01 data of Lake Urmia from January 1 to December 30, 2022, calculate water turbidity and output map, calculate the average of water turbidity, and then analyze the distribution of turbidity values using skewness to detect any anomalies in the data.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calc_batch_image_skewness",
+            "calculate_water_turbidity_ntu",
+            "get_filelist",
+            "mean",
+            "skewness"
+        ]
+    },
+    "157": {
+        "question": "Based on the sur_refl_b01 data of Lake Urmia from January 1 to December 30, 2022, calculate water turbidity over time, determine the turbidity per unit area for each date, and identify the time when the water body experienced the highest level of pollution.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_water_turbidity_ntu",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "158": {
+        "question": "Define the area where NDWI is greater than 0.3 as a water body. Based on the sur_refl_b02 and sur_refl_b04 data of the Great Lakes on July, 2022, derive the water body indicator NDWI, calculate the daily water body proportion of the Great Lakes, and get the day with the highest NDWI.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calculate_ndwi",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "159": {
+        "question": "Regions with NDWI greater than 0.3 are considered water bodies. Based on the sur_refl_b02 and sur_refl_b04 data of the Great Lakes in July 2012 and July 2022, first calculate the NDWI in July 2012, then calculate the NDWI in July 2022. Then calculate the percentage of water bodies in 2012, then calculate the percentage of water bodies in 2022. Compare the percentage of water bodies in the two years and give the difference.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calculate_ndwi",
+            "calculate_tif_average",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "160": {
+        "question": "Based on the sur_refl_b02 and sur_refl_b07 data in California, USA from January 1 to March 30, 2025, calculate the NBR index over time, calculate the average of the daily NBR index, and use Sen's Slope to assess the magnitude of wildfire trends in the region during this period.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_nbr",
+            "get_filelist",
+            "mean",
+            "sens_slope"
+        ]
+    },
+    "161": {
+        "question": "Based on the sur_refl_b02 and sur_refl_b07 data in California, USA from January 1 to March 30, 2025, calculate the NBR index over time and identify the fire hotspots where NBR is less than –0.3. Determine which general direction—east, west, south, or north—has the highest concentration of these hotspots.",
+        "tools_used": [
+            "analyze_hotspot_direction",
+            "calc_batch_image_hotspot_tif",
+            "calculate_nbr",
+            "get_filelist"
+        ]
+    },
+    "162": {
+        "question": "Based on the sur_refl_b02 and sur_refl_b07 data in California, USA from January 1 to March 30, 2025, calculate the NBR index over time, calculate the average value of the daily NBR index, and then use the Mann-Kendall method to analyze its temporal trend.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_nbr",
+            "get_filelist",
+            "mann_kendall_test",
+            "mean"
+        ]
+    },
+    "163": {
+        "question": "Based on the sur_refl_b04 and sur_refl_b06 data in Greenland , calculate the mean NDSI value of Greenland on 2022-09-12. The answer should be kept to three decimal places.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "get_filelist"
+        ]
+    },
+    "164": {
+        "question": "Based on the sur_refl_b04 and sur_refl_b06 data in Greenland in 2020 and 2024, calculate the NDSI of the region. First calculate the daily average NDSI in 2020, then calculate the daily average NDSI in 2024. Then calculate the annual average NDSI in 2020 and then the annual average NDSI in 2024, compare the values to assess the change in snow cover across the two years, and report the difference.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "get_filelist",
+            "mean",
+            "percentage_change"
+        ]
+    },
+    "165": {
+        "question": "Define extreme snow and ice loss as a decrease in NDSI greater than 0.3. Based on the sur_refl_b04 and sur_refl_b06 data in Greenland in 2020 and 2024, calculate the NDSI of the region. First calculate the annual average NDSI in 2020 and output the average map, then calculate the annual average NDSI in 2024 and output the average map, and calculate the proportion of extreme snow and ice loss regions in 2020 and 2024. Determine the glacier melting in Greenland based on the size of the proportion and give the difference.",
+        "tools_used": [
+            "calc_batch_image_hotspot_tif",
+            "calc_extreme_snow_loss_percentage_from_binary_map",
+            "calculate_batch_ndsi",
+            "calculate_tif_average",
+            "get_filelist"
+        ]
+    },
+    "166": {
+        "question": "Based on the sur_refl_b04 and sur_refl_b06 data in Greenland and 2024, calculate the NDSI of the region, calculate the annual average NDSI for 2024 and output the average map, define the NDSI decrease greater than 0.3 as extreme loss, and determine the proportion of Greenland's extreme loss area.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calculate_batch_ndsi",
+            "calculate_tif_average",
+            "get_filelist"
+        ]
+    },
+    "167": {
+        "question": "Define deep snow cover as areas where NDSI exceeds the mean by more than 10%. Based on the sur_refl_b04 and sur_refl_b06 data in Greenland and 2024, calculate the NDSI of the region, first calculate the annual average NDSI for 2024, output the average map, and then calculate the NSDI mean of the average map. Calculate the proportion of deep snow cover areas in the annual NDSI average map.",
+        "tools_used": [
+            "calc_batch_image_hotspot_percentage",
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "calculate_tif_average",
+            "get_filelist"
+        ]
+    },
+    "168": {
+        "question": "Based on the sur_refl_b04 and sur_refl_b06 data in Greenland in 2020 and 2024, calculate the NDSI of the region. First calculate the average NDSI for each date in 2020, and then calculate the average NDSI for each date in 2024. Then calculate the coefficient of variation(CV) of the NDSI fluctuation in 2020, and then calculate the coefficient of variation of the NDSI fluctuation in 2024. According to the difference in the coefficient of variation, determine the difference in the snow cover volatility in Greenland and give the difference.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_batch_ndsi",
+            "coefficient_of_variation",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "169": {
+        "question": "Based on the SR_B3, SR_B5, and QA_PIXEL data of Somerville Lake from January 1, 2018 to January 1, 2020, remove the clouds, calculate the NDWI of the lake, compute the annual average NDWI for 2018 and 2019, and determine trend of change in the average NDWI between the two years and give the magnitude difference.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "170": {
+        "question": "Based on the SR_B3, SR_B5, and QA_PIXEL data of Somerville Lake from January 1, 2018 to January 1, 2020, remove the clouds, calculate the NDWI of the lake, calculate the average NDWI at each time, and use Linear Trend Analysis to determine the overall NDWI trend in the area.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "compute_linear_trend",
+            "get_filelist"
+        ]
+    },
+    "171": {
+        "question": "Define the area where NDWI drops by 30% as the severe water loss area. Based on SR_B3, SR_B5 and QA_PIXEL data of Somerville Lake about 2018-08-22 and 2019-07-24, remove the cloud, calculate NDWI, and calculate the proportion of severe water loss area to the total water area at each time point. Find the day with the most severe water loss.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_hotspot_percentage",
+            "calculate_ndwi",
+            "get_filelist",
+            "max_value_and_index"
+        ]
+    },
+    "172": {
+        "question": "Based on 'SR_B3', 'SR_B5' and QA_PIXEL of Somerville Lake from 2018-01-01 to 2020-01-01, remove clouds, calculate NDWI, calculate the average value of NDWI at each time point, and assess NDWI volatility by calculating the coefficient of variation.",
+        "tools_used": [
+            "apply_cloud_mask",
+            "calc_batch_image_mean",
+            "calculate_ndwi",
+            "coefficient_of_variation",
+            "get_filelist"
+        ]
+    },
+    "173": {
+        "question": "Based on the B10 band data (in Kelvin) of Reykholt on January 2024-01-18, calculate the surface temperature (in °C) . The answer should be kept to three decimal places.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kelvin_to_celsius"
+        ]
+    },
+    "174": {
+        "question": "Based on the B10 data for Reykholt from January 1 to March 30, 2025 (in Kelvin), the daily surface temperature average is calculated, the average is converted to Celsius, and the average surface temperature in Celsius for the period is determined.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kelvin_to_celsius",
+            "mean"
+        ]
+    },
+    "175": {
+        "question": "Based on the B10 band data (in Kelvin) of Reykholt from January 1 to March 30, 2025, calculate the daily surface temperature average, find the lowest surface temperature during this period, and give the date of the lowest surface temperature.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "kelvin_to_celsius",
+            "min_value_and_index"
+        ]
+    },
+    "176": {
+        "question": "Based on the B10 band data (in Kelvin) of Reykholt and Gazelle from 2025-01-01 to 2025-3-30, calculate the average temperature of Reykholt from January to March, then calculate the average temperature of Gazelle from January to March, and compare the average temperatures to determine which city is warmer from January to March? How much higher is the average temperature?",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "177": {
+        "question": "Based on fire MaxFRP in Thailand from 2018-01-01 to 2018-12-30,  the areas with MaxFRP>0 are considered as fire-prone areas. Calculate the mean Fire Radiative Power (FRP) across Thailand in 2018.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "get_filelist",
+            "mean"
+        ]
+    },
+    "178": {
+        "question": "Based on fire MaxFRP in Thailand from 2018-01-01 to 2018-12-30, the areas with MaxFRP>0 are considered as fire-prone areas. Calculate the linear trend and determine whether fire activity is increasing and determine the severity of the trend.",
+        "tools_used": [
+            "calc_batch_fire_pixels",
+            "compute_linear_trend",
+            "get_filelist"
+        ]
+    },
+    "179": {
+        "question": "Based on fire MaxFRP in Thailand from 2018-08-01 to 2018-08-31, the areas with MaxFRP>0 are considered as fire-prone areas. Determine the kurtosis of daily fire pixel counts in Thailand for August 2018 to assess which day is most prone to fire.",
+        "tools_used": [
+            "calc_batch_fire_pixels",
+            "get_filelist",
+            "kurtosis"
+        ]
+    },
+    "180": {
+        "question": "Based on fire MaxFRP in Thailand from 2018-08-01 to 2018-08-31, the areas with MaxFRP>0 are considered as fire-prone areas. Conduct a hotspot analysis of fire-prone areas in Thailand in 2018 to determine which areas are most prone to fires.",
+        "tools_used": [
+            "get_filelist",
+            "identify_fire_prone_areas"
+        ]
+    },
+    "181": {
+        "question": "Based on fire MaxFRP in Thailand from 2018-03-01 to 2018-03-30 and from 2018-08-01 to 2018-08-30, the areas with MaxFRP>0 are considered as fire-prone areas, define a threshold of increase as +20 MW, identify and map regions where fire intensity significantly increased and visulize these areas in the map.",
+        "tools_used": [
+            "calculate_tif_average",
+            "count_above_threshold",
+            "create_fire_increase_map",
+            "get_filelist",
+            "subtract"
+        ]
+    },
+    "182": {
+        "question": "Based on the sur_refl_b01 and sur_refl_b04 data of the Arctic Ocean, calculate the NDTI and compute the average NDTI values for July 2012 and July 2022. Determine whether ocean turbidity in the Arctic Ocean increased or decreased over this period, and report the magnitude of the change.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_ndti",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "183": {
+        "question": "According to the sur_refl_b01 and sur_refl_b04 band values of the Arctic Ocean, calculate the NDTI value, and the maximum NDTI value in July 2022 is determined to give the date when the marine pollution is the most serious.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_ndti",
+            "get_filelist"
+        ]
+    },
+    "184": {
+        "question": "Define high turbidity area as the area where NDTI exceeds 50% of the average value. Based on the sur_refl_b01 and sur_refl_b04 band values of the Arctic Ocean, calculate the NDTI value, first calculate the proportion of high turbidity area in July 2012, and then calculate the proportion of high turbidity area in July 2022. Determine which high turbidity area has a larger proportion in July 2012 and July 2022, and give the difference in proportion.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_ndti",
+            "calculate_tif_average",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "185": {
+        "question": "Based on the sur_refl_b01 and sur_refl_b04 band values of the Arctic Ocean, calculate the NDTI value, define high turbidity area as NDTI exceeding the mean by 50%, calculate the proportion of high turbidity area in July 2022 and visualize these areas in the map.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "calculate_ndti",
+            "calculate_tif_average",
+            "get_filelist"
+        ]
+    },
+    "186": {
+        "question": "Based on the built_volume_total data of Shanghai from 1980 to 2025, calculate the total change in building volume for Shanghai between 1985 and 2020 and compute the percentage change.",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "difference",
+            "get_filelist",
+            "percentage_change"
+        ]
+    },
+    "187": {
+        "question": "Based on the built_volume_total and built_volume_nres data of Shanghai from 1980 to 2025, the residential building volume is calculated by subtracting built_volume_total and built_volume_nres and saved as a map. Calculate the linear trend of the overall change in residential volume in Shanghai from 1985 to 2020",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "get_filelist",
+            "subtract"
+        ]
+    },
+    "188": {
+        "question": "Based on the built_volume_total and built_volume_nres data of Shanghai from 1980 to 2025, first calculate the average value of built_volume_total each year, then calculate the average value of built_volume_nres each year, and then calculate the ratio of built_volume_nres to built_volume_total, and analyze the linear trend of the ratio",
+        "tools_used": [
+            "calc_batch_image_mean",
+            "compute_linear_trend",
+            "division",
+            "get_filelist"
+        ]
+    },
+    "189": {
+        "question": "Determining the number of images captured in industrial areas. The relevant data is stored in benchmark/data/question189.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "190": {
+        "question": "Determining the number of images captured in park areas. The relevant data is stored in benchmark/data/question190.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "191": {
+        "question": "Determining the number of images captured in bareland areas. The relevant data is stored in benchmark/data/question191.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "192": {
+        "question": "Determining the number of images captured in bridge areas. The relevant data is stored in benchmark/data/question192.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "193": {
+        "question": "Determining the number of images captured in church areas. The relevant data is stored in benchmark/data/question193.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "194": {
+        "question": "Determining the number of images captured in baseballfield areas. The relevant data is stored in benchmark/data/question194.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "195": {
+        "question": "Determining the number of images captured in farmland areas. The relevant data is stored in benchmark/data/question195.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "196": {
+        "question": "Determining the number of images captured in storagetanks areas. The relevant data is stored in benchmark/data/question196.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "197": {
+        "question": "Determining the number of images captured in playground areas. The relevant data is stored in benchmark/data/question197.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "198": {
+        "question": "Determining the number of images captured in port areas. The relevant data is stored in benchmark/data/question198.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "199": {
+        "question": "Determining the number of images captured in airport areas. The relevant data is stored in benchmark/data/question199.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "200": {
+        "question": "Determining the number of images captured in pond areas. The relevant data is stored in benchmark/data/question200.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "201": {
+        "question": "Determining the number of images captured in commercial areas. The relevant data is stored in benchmark/data/question201.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "202": {
+        "question": "Determining the number of images captured in mountain areas. The relevant data is stored in benchmark/data/question202.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "203": {
+        "question": "Determining the number of images captured in beach areas. The relevant data is stored in benchmark/data/question203.",
+        "tools_used": [
+            "MSCN",
+            "get_filelist"
+        ]
+    },
+    "204": {
+        "question": "You are working with a city planning team evaluating sports infrastructure across suburban districts. Your job is to count the number of baseball diamonds in each aerial image. Sort the images based on the number of baseball diamonds they contain. The relevant data is stored in benchmark/data/question204.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "205": {
+        "question": "To support energy infrastructure monitoring, analysts are reviewing satellite images to track industrial storage capacity. Your task is to: (1) count the number of storage tanks visible in each image, and (2) rank all images from highest to lowest based on the tank count. The relevant data is stored in benchmark/data/question205.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "206": {
+        "question": "You've been hired by the Department of Youth and Sports to evaluate the availability of public basketball courts in different neighborhoods. Using aerial imagery, count the number of basketball courts visible in each image. Then, sort the images based on how many courts are present. The relevant data is stored in benchmark/data/question206.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "207": {
+        "question": "You are working with a city planning team evaluating sports infrastructure across suburban districts. Your job is to count the number of baseball diamonds in each aerial image. Sort the images based on the number of baseball diamonds they contain. The relevant data is stored in benchmark/data/question207.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "208": {
+        "question": "You are supporting an airport operations team that uses satellite images to monitor aircraft activity on runways and aprons. Your task is to count the number of airplanes visible in each image and sort the images based on aircraft count. This helps identify the busiest periods or the most congested zones. The relevant data is stored in benchmark/data/question208.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "209": {
+        "question": "You are assisting a maritime logistics team that monitors port congestion using satellite imagery. Your task is to count the number of ships in each image and sort the images based on ship traffic to help identify the busiest ports. The relevant data is stored in benchmark/data/question209.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "210": {
+        "question": "As part of a regional sports infrastructure audit, you are tasked with identifying all baseball diamonds visible in the satellite imagery and estimating their total area using bounding boxes (GSD = 0.13 m/px). The relevant data is stored in benchmark/data/question210.",
+        "tools_used": [
+            "SM3Det",
+            "calculate_bbox_area",
+            "get_filelist"
+        ]
+    },
+    "211": {
+        "question": "To help city planners visualize the proportion of urban space dedicated to baseball fields, convert the estimated total area of all detected baseball diamonds (calculated using bounding boxes, gsd = 0.26 px / m) into an equivalent number of standard basketball courts (each 420 m²). The relevant data is stored in benchmark/data/question211.",
+        "tools_used": [
+            "SM3Det",
+            "calculate_bbox_area",
+            "ceil_number",
+            "division",
+            "get_filelist"
+        ]
+    },
+    "212": {
+        "question": "To help city planners visualize the proportion of urban space dedicated to tenniscourts, convert the estimated total area of all detected baseball diamonds (calculated using bounding boxes, gsd = 0.13 px / m) into an equivalent number of standard basketball courts (each 420 m²). The relevant data is stored in benchmark/data/question212.",
+        "tools_used": [
+            "SM3Det",
+            "calculate_bbox_area",
+            "get_filelist"
+        ]
+    },
+    "213": {
+        "question": "You are working with an urban recreation planning agency to map and quantify the total land occupied by tennis courts. Using aerial or satellite images and a ground sampling distance (GSD = 0.13 meters per pixel), detect all tennis courts and calculate their total built-up area in square meters. The relevant data is stored in benchmark/data/question213.",
+        "tools_used": [
+            "SAM2",
+            "SM3Det",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "214": {
+        "question": "You are contributing to a citywide recreational facility audit aiming to evaluate the total footprint of tennis courts across different districts. You have three aerial images (A, B, C) with different spatial resolutions (GSD: A = 0.12 m/px, B = 0.14 m/px, C = 0.11 m/px). Detect all tennis courts in the images, compute the built-up area of each court using the corresponding GSD, and rank all courts from largest to smallest based on their area in square meters. The relevant data is stored in benchmark/data/question214.",
+        "tools_used": [
+            "SM3Det",
+            "calculate_bbox_area",
+            "get_filelist"
+        ]
+    },
+    "215": {
+        "question": "Detect all baseball-diamond in the three images and rank them by built-up area. GSD for image A is 0.28; GSD for image B is 0.27; GSD for image C is 0.13. The relevant data is stored in benchmark/data/question215.",
+        "tools_used": [
+            "SAM2",
+            "SM3Det",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "216": {
+        "question": "Detect and segment the buildings in the image, and calculate their total built-up area in square meters (GSD = 0.20 m/px). The relevant data is stored in benchmark/data/question216.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "217": {
+        "question": "Detect and segment the buildings in the image, and calculate their total built-up area in pixels. The relevant data is stored in benchmark/data/question217.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "218": {
+        "question": "You are provided with satellite images of the same region captured at two different time points. Your task is to identify and segment changes in buildings between the two time points. Specifically, generate a binary change mask where changed building pixels are labeled as 1 and unchanged areas as 0, and calculate the total area of the changed buildings in pixels. The relevant data is stored in benchmark/data/question218.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "219": {
+        "question": "After a natural disaster, emergency response teams need to assess the extent of damage to buildings. You are provided with satellite images of the same region captured before and after the event. Your task is to detect and segment buildings in both images, identify where buildings have disappeared or shrunk, and calculate the total reduction in building area in pixels. The relevant data is stored in benchmark/data/question219.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "220": {
+        "question": "Detect changes in buildings between two time points, and calculate the reduction in building area in pixels. The relevant data is stored in benchmark/data/question220.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "221": {
+        "question": "Both region A and region B were affected by a natural disaster. By analyzing the damage to buildings in each region, determine which area suffered more severe impact. The relevant data is stored in benchmark/data/question221.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "222": {
+        "question": "A powerful natural disaster recently struck two urban areas: Region A and Region B. Urban planners and emergency response teams need to evaluate which region suffered more severe structural damage. You are provided with satellite images of both regions captured before and after the event. Your task is to detect and segment buildings in the pre-disaster and post-disaster images, calculate the reduction in total building area for each region, and identify which one experienced greater loss. The relevant data is stored in benchmark/data/question222.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "223": {
+        "question": "A major natural disaster struck two neighboring areas: region A and region B. Authorities need rapid assessments to prioritize relief efforts. Using pre- and post-disaster satellite images of both regions, detect the buildings in each time point, identify which buildings were destroyed or significantly damaged, and calculate the reduction in building area for each region. Compare the total reductions and determine which region was more severely affected. The relevant data is stored in benchmark/data/question223.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "224": {
+        "question": "After a powerful natural disaster struck the region, emergency response teams need an immediate estimation of structural losses to guide their rescue efforts. Given satellite images taken before and after the event, detect buildings in both time points, identify which buildings have been completely destroyed, and count their total number. The relevant data is stored in benchmark/data/question224.",
+        "tools_used": [
+            "ChangeOS",
+            "count_skeleton_contours",
+            "get_filelist"
+        ]
+    },
+    "225": {
+        "question": "After a powerful natural disaster struck the region, emergency response teams need an immediate estimation of structural losses to guide their rescue efforts. Given satellite images taken before and after the event, detect buildings in both time points, identify which buildings have been completely destroyed, and count their total number. The relevant data is stored in benchmark/data/question225.",
+        "tools_used": [
+            "ChangeOS",
+            "count_skeleton_contours",
+            "get_filelist"
+        ]
+    },
+    "226": {
+        "question": "A satellite monitoring system is being used to map athletic facilities in a newly developed urban zone. Your task is to detect all football fields in the imagery, identify the one located furthest to the west (i.e., on the leftmost side of the image), and calculate its centroid coordinates. The relevant data is stored in benchmark/data/question226.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "227": {
+        "question": "A transportation department is using satellite images to analyze traffic flow in a new city district. Your current task is to: identify the roundabouts that is both the largest in area and situated furthest west (i.e., leftmost), and calculate its centroid coordinates. The relevant data is stored in benchmark/data/question227.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "228": {
+        "question": "A disaster response agency is analyzing fuel and water storage infrastructure using satellite imagery. Your task is to: identify the white storage tanks in the image located at the northernmost position, and  generate a pixel-wise segmentation mask for it. The relevant data is stored in benchmark/data/question228.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "229": {
+        "question": "Find the region that corresponds to: \"The largest ground track field on the westernmost side\", and calculate its centroid coordinates. The relevant data is stored in benchmark/data/question229.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "230": {
+        "question": "As part of a maritime infrastructure review, detect all harbor structures visible in each of the two satellite images. Then, calculate the real-world built-up area of each harbor using the respective ground sample distance (GSD: A = 0.50m/px, B = 0.30m/px). Finally, calculate the difference between the harbor areas of the two images. The relevant data is stored in benchmark/data/question230.",
+        "tools_used": [
+            "SAM2",
+            "SM3Det",
+            "calculate_area",
+            "difference",
+            "get_filelist"
+        ]
+    },
+    "231": {
+        "question": "An environmental agency is conducting an assessment of industrial zones to monitor the potential risk of hazardous material leaks. Count the number of storage tanks in each image. Based on the counts, rank the regions from most to fewest storage tanks. The relevant data is stored in benchmark/data/question231.",
+        "tools_used": [
+            "InstructSAM",
+            "get_filelist"
+        ]
+    },
+    "232": {
+        "question": "A city planning department is analyzing satellite imagery to evaluate the distribution of sports facilities across urban neighborhoods. Detect all soccer-ball-fields in this image and calculate the centroid coordinates of each field. Clearly mark each detected field to support facility management and future planning. The relevant data is stored in benchmark/data/question232.",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "233": {
+        "question": "What is the distance between the two closest plane in the image? (GSD = 0.11 m/px)",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "multiply"
+        ]
+    },
+    "234": {
+        "question": "Calculate the distance between the two closest ship in the image. (GSD = 0.12 m/px)",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "multiply"
+        ]
+    },
+    "235": {
+        "question": "Calculate the distance between the two farthest plane in the image. (GSD = 0.14 m/px)",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "multiply"
+        ]
+    },
+    "236": {
+        "question": "What is the distance between the two farthest plane in the image? (GSD = 0.14 m/px)",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "multiply"
+        ]
+    },
+    "237": {
+        "question": "What is the distance between the two closest harbor in the image? (GSD = 0.14 m/px)",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "multiply"
+        ]
+    },
+    "238": {
+        "question": "Detect all harbors in the image and return the closest pair of harbor bounding boxes.",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "get_list_object_via_indexes"
+        ]
+    },
+    "239": {
+        "question": "Calculate the distance between the two closest soccer ball fields in the image. (GSD = 0.28 m/px)",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "multiply"
+        ]
+    },
+    "240": {
+        "question": "Determine the bounding boxes of the farthest pair of harbor in the image.",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "get_list_object_via_indexes"
+        ]
+    },
+    "241": {
+        "question": "Determine the bounding boxes of the farthest pair of harbor in the image.",
+        "tools_used": [
+            "SM3Det",
+            "bboxes2centroids",
+            "centroid_distance_extremes",
+            "get_filelist",
+            "get_list_object_via_indexes"
+        ]
+    },
+    "242": {
+        "question": "Determine how many buildings are ruined in the image. The relevant data is stored in benchmark/data/question242.",
+        "tools_used": [
+            "ChangeOS",
+            "count_skeleton_contours",
+            "get_filelist"
+        ]
+    },
+    "243": {
+        "question": "Determine how many months will be needed to fully restore the area.",
+        "tools_used": [
+            "ChangeOS",
+            "count_skeleton_contours",
+            "get_filelist"
+        ]
+    },
+    "244": {
+        "question": "Determine the area change of the destroyed building. The relevant data is stored in benchmark/data/question244.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "245": {
+        "question": "Determine the area change of the destroyed building. The relevant data is stored in benchmark/data/question245.",
+        "tools_used": [
+            "ChangeOS",
+            "calculate_area",
+            "get_filelist"
+        ]
+    },
+    "246": {
+        "question": "An environmental monitoring agency is analyzing satellite images of an industrial zone to track the placement of fuel storage tanks near rivers. Find the region that corresponds to the following description: “Search the third storage tank that is about 862 square meters in the east side of some storage tanks. There is a river, located approximately 71 meters west of the storage tank.” Determine the centroid coordinates of the region. (GSD = 2.00 m/px) The relevant data is stored in benchmark/data/question246.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "247": {
+        "question": "A city's sports facility management department is reviewing aerial imagery to plan the renovation of recreational spaces. Find the region that corresponds to: “The largest tennis court on the northernmost side.” Determine the centroid coordinates of the region. (GSD = 1.00 m/px) The relevant data is stored in benchmark/data/question247.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    },
+    "248": {
+        "question": "A city's sports facility management department is reviewing aerial imagery to plan the renovation of recreational spaces. Find the region that corresponds to: “The largest tennis court” Determine the centroid coordinates of the region. The relevant data is stored in benchmark/data/question248.",
+        "tools_used": [
+            "RemoteSAM",
+            "bboxes2centroids",
+            "get_filelist"
+        ]
+    }
+}
