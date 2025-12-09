@@ -1,6 +1,8 @@
 import torch
 import torch.nn.functional as F
 from collections import defaultdict
+
+
 class SGCRetriever:
 
     def __init__(self, graph_manager, tool_names, raw_embeddings, alpha=0.2):

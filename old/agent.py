@@ -3,12 +3,11 @@ import json
 import time
 from collections import deque
 from typing import Any, Optional, Dict, List
-import concurrent.futures
 import inspect
 import asyncio
 from datetime import datetime
 from model import LLM
-from ToolMem import ToolMem
+from old.ToolMem import ToolMem
 from Toolregistry import ToolRegistry
 from prompt import tool_agent_prompt, graph_build_prompt
 
@@ -632,4 +631,4 @@ if __name__ == "__main__":
     # tool_mem = ToolMem()
     # tool_mem.load_tools_from_json_list("./eval/earth_agent/earth_tools.json")
 
-    build_graph_from_node_file(initial_model="qwen3-max", sys_prompt=graph_build_prompt, node_path="./tools_graph/node.json", edge_path="./tools_graph/edge.json")
+    build_graph_from_node_file(initial_model="qwen3-max", sys_prompt=graph_build_prompt, node_path="../tools_graph/node.json", edge_path="../tools_graph/edge.json")

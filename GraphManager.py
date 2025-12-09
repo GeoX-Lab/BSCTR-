@@ -9,7 +9,7 @@ class GraphManager:
     - SGC 聚合时自动取转置：adj_sgc = adj.T
     """
 
-    def __init__(self, num_nodes: int, device="cpu"):
+    def __init__(self, num_nodes: int, device: str = "cuda" if torch.cuda.is_available() else "cpu"):
         self.device = device
         self.num_nodes = num_nodes
         self.adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float32, device=device)

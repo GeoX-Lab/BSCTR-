@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, AsyncGenerator, Union, List
 from openai import AsyncOpenAI
 
+
 def load_model_config_from_yaml(yaml_path: str, model: str) -> Dict[str, Any]:
     """
     从 YAML 文件加载模型配置。
