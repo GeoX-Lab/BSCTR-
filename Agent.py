@@ -8,7 +8,7 @@ from model import LLM
 from Toolregistry import ToolRegistry
 from GraphManager import GraphManager
 from SGCRetriever import SGCRetriever
-
+from prompt import decompose_prompt, tool_call_prompt
 
 class BaseAgent:
     def __init__(self, initial_model: str, sys_prompt_template: str, output_dir: str = "./outputs/outputs.json"):
@@ -119,6 +119,14 @@ class SGCAgent(BaseAgent):
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")
 
+        self.ollama_config = {}
+        try:
+            with open("./config.yaml", "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
+                self.ollama_config = cfg.get("ollama", {})
+        except Exception as e:
+            print(f"[!] Config load error: {e}")
+
         # 2. SGC 系统组件占位
         self.tool_names = []
         self.tool_map = {}  # name -> id
@@ -131,11 +139,9 @@ class SGCAgent(BaseAgent):
 
     def get_text_embedding(self, text: str) -> torch.Tensor:
 
-        with open("../config.yaml", "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
         try:
-            url = cfg["ollama"]["embedding_url"]
-            model_name = cfg["ollama"]["model_name"]
+            url = self.ollama_config.get("embedding_url")
+            model_name = self.ollama_config.get("model_name")
             data = {"model": model_name, "prompt": text}
 
             response = requests.post(url, json=data, timeout=30)
@@ -147,9 +153,10 @@ class SGCAgent(BaseAgent):
             return tensor.to(self.device)
 
         except Exception as e:
-            dim = cfg["ollama"].get("embedding_dim", 768)
+            dim = self.ollama_config.get("embedding_dim", 768)
             print(f"Error getting embedding: {e}")
             return torch.zeros((1, dim), dtype=torch.float32, device=self.device)
+
     def init_sgc_system(self):
         """
         初始化图检索系统。
@@ -162,7 +169,7 @@ class SGCAgent(BaseAgent):
 
         self.tool_names = list(tools.keys())
         # 提取工具描述用于初始化向量
-        tool_descs = [t.get('description', '') or t.get('name') for t in tools.values()]
+        tool_descp = [t.get('description', '') or t.get('name') for t in tools.values()]
         self.tool_map = {name: i for i, name in enumerate(self.tool_names)}
 
         num_nodes = len(self.tool_names)
@@ -175,7 +182,7 @@ class SGCAgent(BaseAgent):
 
         # 2. 批量生成初始工具嵌入 (Raw Embeddings)
         raw_embeds_list = []
-        for desc in tool_descs:
+        for desc in tool_descp:
             # get_text_embedding 已经处理了 device
             raw_embeds_list.append(self.get_text_embedding(desc))
 
@@ -208,20 +215,7 @@ class SGCAgent(BaseAgent):
         Step 1: 任务分解
         将用户查询分解为带有明确 'action' 的子问题序列。
         """
-        prompt = f"""
-        You are a generic planning agent. Break down the User Query into a sequence of sub-tasks.
-        Each sub-task MUST have a distinct 'action' (verb) and a specific 'query'.
-
-        User Query: "{query}"
-
-        Output format: A pure JSON list of objects.
-        Example:
-        [
-            {{"step": 1, "action": "search", "query": "find stock price of Apple"}},
-            {{"step": 2, "action": "calculate", "query": "calculate the PE ratio"}}
-        ]
-        Do not output markdown code blocks, just the JSON string.
-        """
+        prompt = decompose_prompt.format(query=query)
         resp = await self._llm_generate_text(prompt)
 
         # 简单的 JSON 清洗逻辑
@@ -238,24 +232,26 @@ class SGCAgent(BaseAgent):
             # 降级策略：作为单步任务
             return [{"step": 1, "action": "execute", "query": query}]
 
-    async def generate_tool_args(self, tool_name: str, task_query: str, context: str) -> Dict:
-        """根据上下文生成工具参数"""
-        tool_info = self.tool_registry.get_tool(tool_name)
-        schema = tool_info.get("args", {})
-
-        prompt = f"""
-        Construct arguments for the tool '{tool_name}'.
-        Task: {task_query}
-        Tool Schema: {json.dumps(schema)}
-        Preceding Execution Context: {context}
-
-        Return ONLY a JSON object with the arguments.
+    async def generate_tool_args(self, tool_name: str, tool_desc: str, task_query: str, context: str) -> Dict:
         """
+        生成参数：对接 Registry Schema，并结合检索到的工具描述信息
+        """
+        try:
+            # 获取严谨的 JSON Schema
+            schema = self.tool_registry.generate_tool_schema(tool_name)
+            schema = json.dumps(schema)
+        except KeyError:
+            print(f"[!] Warning: Schema not found for {tool_name}")
+            schema = {}
+
+        prompt = tool_call_prompt.format(task_query=task_query, tool_name=tool_name ,tool_desc=tool_desc, context=context, schema=schema)
+
         resp = await self._llm_generate_text(prompt)
         try:
-            if "```" in resp: resp = resp.split("```")[1].replace("json", "")
+            if "```" in resp: resp = resp.split("```")[1].replace("json", "").strip()
             return json.loads(resp)
         except:
+            print(f"[!] Failed to parse args json for {tool_name}")
             return {}
 
     async def reflection(self, task_query: str, tool_name: str, tool_result: str) -> bool:
@@ -272,33 +268,29 @@ class SGCAgent(BaseAgent):
 
     async def run(self, user_query: str):
         """
-        智能体主执行流：
-        分解 -> 批量检索 -> 执行 & 动态图更新
+        [修改] 智能体主执行流：
+        分解 -> 批量检索 -> (信息结合 -> 执行 -> 反思 -> 生成链路 -> 更新图) -> 总结
         """
-        # 1. 记录用户输入
+        # 1. 初始化会话
         self.history.append({"role": "user", "content": user_query})
-        self.trajectory_buffer = []  # 清空当前轨迹
+        self.trajectory_buffer = []  # 记录当前工具链 [id1, id2, ...]
+        path_links = []  # 记录可视化的链路 ["ToolA -> ToolB", ...]
 
         # 2. 任务分解
-        print(f"\n>>> Decomposing: {user_query}")
+        print(f"\n>>> [Phase 1] Decomposing Query: {user_query}")
         sub_tasks = await self.decompose_query(user_query)
         print(f">>> Plan: {json.dumps(sub_tasks, indent=2, ensure_ascii=False)}")
 
-        # 3. 批量检索 (Simultaneous Retrieval)
-        # 根据题目要求，在分解完后对所有子任务进行检索。
-        # 此时基于的是“当前”SGC图状态（如果是第一次运行，就是离散图）。
+        # 3. 批量检索 (基于当前SGC图状态进行并发检索)
         execution_plan = []
+        print("\n>>> [Phase 2] Batch Retrieving Tools (SGC Accelerated)...")
 
-        print("\n>>> Batch Retrieving Tools (GPU Accelerated)...")
         for task in sub_tasks:
-            # 构造检索 Query: 动作 + 内容
+            # 构造检索 Query
             search_str = f"{task.get('action', '')} {task.get('query', '')}"
-
-            # 向量化 (GPU)
             query_vec = self.get_text_embedding(search_str)
 
-            # SGC 检索 (GPU)
-            # search 返回最佳工具信息字典
+            # SGC 检索
             best_tool = self.retriever.search(query_vec, top_k=5)
 
             execution_plan.append({
@@ -306,59 +298,87 @@ class SGCAgent(BaseAgent):
                 "tool": best_tool
             })
 
-        # 4. 逐步执行与图更新
-        context_str = ""
+        # 4. 执行循环
+        context_str = ""  # 累积的执行结果上下文
+        print("\n>>> [Phase 3] Execution & Graph Evolution Loop...")
 
         for idx, step in enumerate(execution_plan):
             task = step['task']
             tool_data = step['tool']
 
             tool_name = tool_data['name']
+            tool_desc = self.tool_registry.get_tool(tool_name).get('meta', {}).get('description', '')
             tool_id = tool_data['id']
+            tool_score = tool_data['score']
 
-            print(f"\n[Step {idx + 1}] Goal: {task['query']}")
-            print(f"         Tool: {tool_name} (SGC Score: {tool_data['score']:.4f})")
+            print(f"\n---------------------------------------------------------------")
+            print(f"[Step {idx + 1}] Sub-task: {task['query']}")
+            print(f"          Selected Tool: {tool_name} (SGC Score: {tool_score:.4f})")
 
-            # 4.1 参数生成
-            args = await self.generate_tool_args(tool_name, task['query'], context_str)
-            print(f"         Args: {args}")
+            # 4.1 信息结合 & 参数生成
+            # 将工具描述传入，帮助 LLM 理解工具用途
+            args = await self.generate_tool_args(tool_name, tool_desc, task['query'], context_str)
+            print(f"          Args: {args}")
 
             # 4.2 工具调用
-            result = await self.call_tool(tool_name, args)
+            try:
+                result = await self.call_tool(tool_name, args)
+            except Exception as e:
+                result = f"Error: {str(e)}"
 
-            # 4.3 反思
+            # 4.3 反思 (Reflection)
             success = await self.reflection(task['query'], tool_name, result)
 
             if success:
-                print(f"         [Status] Success. Updating Graph Context.")
-                context_str += f"\nStep {idx + 1} ({tool_name}): {result}"
+                print(f"          [Status] Execution SUCCESS.")
+                context_str += f"\n[Step {idx + 1} Output ({tool_name})]: {result}"
 
-                # --- SGC 图更新逻辑 ---
-                # 要求：任务完成后，父子节点关系才写入 SGC 图
+                # 4.4 生成路径链路 & 更新 SGC 图
+                # 只有当存在上一个节点时，才构成“链路”
                 if len(self.trajectory_buffer) > 0:
-                    parent_id = self.trajectory_buffer[-1]  # 上一个成功的工具 ID
-                    child_id = tool_id  # 当前成功的工具 ID
+                    parent_id = self.trajectory_buffer[-1]
+                    child_id = tool_id
 
+                    # 记录可视化链路
+                    parent_name = self.tool_names[parent_id]
+                    link_str = f"{parent_name} -> {tool_name}"
+                    path_links.append(link_str)
+                    print(f"          [Link Generated] {link_str}")
+
+                    # --- SGC Update Core ---
                     if parent_id != child_id:
-                        # 1. 更新邻接矩阵 (GPU Tensor 操作)
+                        print(f"          [Graph Update] Injecting edge into SGC adjacency matrix...")
+                        # 1. 写入关系
                         self.graph_manager.add_edge(parent_id, child_id)
-
-                        # 2. 重新计算 SGC Embeddings
-                        # 这一步会利用 GPU 上的 adj 矩阵和 raw_embeddings 进行矩阵乘法
-                        # 从而使下一次检索（或下一轮对话）能感知到这个工具链关系
+                        # 2. 立即更新向量空间 (使得未来的检索能感知到这个新的 pattern)
                         self.retriever.final_embeddings = self.retriever.compute_sgc_embeddings()
-                        print(
-                            f"         [Graph] Edge added: {self.tool_names[parent_id]} -> {self.tool_names[child_id]}")
 
-                # 将当前 ID 加入轨迹
+                # 将当前节点加入缓冲区，作为下一步的 parent
                 self.trajectory_buffer.append(tool_id)
 
             else:
-                print(f"         [Status] Failed. Graph not updated.")
-                context_str += f"\nStep {idx + 1} ({tool_name}) Failed."
+                print(f"          [Status] Execution FAILED or INCOMPLETE.")
+                context_str += f"\n[Step {idx + 1} Failed]: Tool {tool_name} did not solve the task."
+                # 熔断机制：如果是遥感数据处理，通常一步错步步错，建议在此停止
+                print("          [Alert] Breaking execution chain due to failure.")
+                break
 
-        # 5. 生成最终回复
-        final_prompt = f"User Query: {user_query}\nExecution History:\n{context_str}\n\nPlease verify if the user's question is answered and provide a summary."
+        # 5. 总结输出
+        print(f"\n>>> [Phase 4] Final Summary")
+        print(f"    Trajectory Path: {' => '.join([self.tool_names[i] for i in self.trajectory_buffer])}")
+
+        final_prompt = f"""
+           User Query: {user_query}
+
+           Execution History:
+           {context_str}
+
+           Generated Tool Path:
+           {path_links}
+
+           Please provide a comprehensive summary of the results. 
+           If files were generated, list their paths explicitly.
+           """
         final_response = await self._llm_generate_text(final_prompt)
 
         self.history.append({"role": "assistant", "content": final_response})
