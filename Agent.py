@@ -5,10 +5,11 @@ import torch
 from typing import Any, Optional, List, Dict
 import inspect
 from model import LLM
+from Working_mem import WorkingMemory
 from Toolregistry import ToolRegistry
 from GraphManager import GraphManager
 from SGCRetriever import SGCRetriever
-from prompt import decompose_prompt, tool_call_prompt
+from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT, JUDGER_PROMPT
 
 class BaseAgent:
     def __init__(self, initial_model: str, sys_prompt_template: str, output_dir: str = "./outputs/outputs.json"):
@@ -109,16 +110,16 @@ class BaseAgent:
 class SGCAgent(BaseAgent):
     def __init__(self,
                  initial_model: str,
-                 sys_prompt_template: str,
+                 sys_prompt_template: SYSTEM_PROMPT,
                  output_dir: str = "./outputs/outputs.json",
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
-        # 调用基类初始化
         super().__init__(initial_model, sys_prompt_template, output_dir)
 
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")
 
+        self.working_memory = None
         self.ollama_config = {}
         try:
             with open("./config.yaml", "r", encoding="utf-8") as f:
@@ -210,176 +211,255 @@ class SGCAgent(BaseAgent):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
 
+    def _parse_json(self, text: str) -> Any:
+        """鲁棒的 JSON 解析器"""
+        try:
+            if "```" in text:
+                text = text.split("```")[1].replace("json", "").strip()
+            return json.loads(text)
+        except:
+            return None
+
     async def decompose_query(self, query: str) -> List[Dict]:
         """
         Step 1: 任务分解
         将用户查询分解为带有明确 'action' 的子问题序列。
         """
-        prompt = decompose_prompt.format(query=query)
+        prompt = DECOMPOSE_PROMPT.format(query=query)
         resp = await self._llm_generate_text(prompt)
+        tasks = self._parse_json(resp)
+        return tasks if isinstance(tasks, list) else [{"step": 1, "action": "execute", "query": query}]
 
-        # 简单的 JSON 清洗逻辑
-        if "```json" in resp:
-            resp = resp.split("```json")[1].split("```")[0]
-        elif "```" in resp:
-            resp = resp.split("```")[1].split("```")[0]
-
-        try:
-            tasks = json.loads(resp)
-            return tasks if isinstance(tasks, list) else []
-        except json.JSONDecodeError:
-            print(f"[!] Decomposition JSON error. Raw: {resp}")
-            # 降级策略：作为单步任务
-            return [{"step": 1, "action": "execute", "query": query}]
-
-    async def generate_tool_args(self, tool_name: str, tool_desc: str, task_query: str, context: str) -> Dict:
+    async def generate_tool_args(self, candidates: List[Dict], task_query: str) -> List[Dict]:
         """
-        生成参数：对接 Registry Schema，并结合检索到的工具描述信息
+        接收候选工具列表
         """
-        try:
-            # 获取严谨的 JSON Schema
-            schema = self.tool_registry.generate_tool_schema(tool_name)
-            schema = json.dumps(schema)
-        except KeyError:
-            print(f"[!] Warning: Schema not found for {tool_name}")
-            schema = {}
+        # 1. 批量构建工具信息 (Name + Desc + Schema)
+        tools_list = []
+        for cand in candidates:
+            name = cand['name']
+            # 获取描述
+            tool_data = self.tool_registry.get_tool(name)
+            desc = tool_data.get('meta', {}).get('description', '')
+            # 获取 Schema
+            try:
+                schema = self.tool_registry.generate_tool_schema(name)
+            except:
+                schema = "Schema unavailable"
 
-        prompt = tool_call_prompt.format(task_query=task_query, tool_name=tool_name ,tool_desc=tool_desc, context=context, schema=schema)
-
-        resp = await self._llm_generate_text(prompt)
-        try:
-            if "```" in resp: resp = resp.split("```")[1].replace("json", "").strip()
-            return json.loads(resp)
-        except:
-            print(f"[!] Failed to parse args json for {tool_name}")
-            return {}
-
-    async def reflection(self, task_query: str, tool_name: str, tool_result: str) -> bool:
-        """Step 3: 反思机制，判断任务是否完成"""
-        prompt = f"""
-        Goal: {task_query}
-        Tool Used: {tool_name}
-        Result: {str(tool_result)[:300]}...
-
-        Did the tool result satisfy the goal? Answer YES or NO.
-        """
-        resp = await self._llm_generate_text(prompt)
-        return "YES" in resp.upper()
-
-    async def run(self, user_query: str):
-        """
-        [修改] 智能体主执行流：
-        分解 -> 批量检索 -> (信息结合 -> 执行 -> 反思 -> 生成链路 -> 更新图) -> 总结
-        """
-        # 1. 初始化会话
-        self.history.append({"role": "user", "content": user_query})
-        self.trajectory_buffer = []  # 记录当前工具链 [id1, id2, ...]
-        path_links = []  # 记录可视化的链路 ["ToolA -> ToolB", ...]
-
-        # 2. 任务分解
-        print(f"\n>>> [Phase 1] Decomposing Query: {user_query}")
-        sub_tasks = await self.decompose_query(user_query)
-        print(f">>> Plan: {json.dumps(sub_tasks, indent=2, ensure_ascii=False)}")
-
-        # 3. 批量检索 (基于当前SGC图状态进行并发检索)
-        execution_plan = []
-        print("\n>>> [Phase 2] Batch Retrieving Tools (SGC Accelerated)...")
-
-        for task in sub_tasks:
-            # 构造检索 Query
-            search_str = f"{task.get('action', '')} {task.get('query', '')}"
-            query_vec = self.get_text_embedding(search_str)
-
-            # SGC 检索
-            best_tool = self.retriever.search(query_vec, top_k=5)
-
-            execution_plan.append({
-                "task": task,
-                "tool": best_tool
+            tools_list.append({
+                "name": name,
+                "description": desc,
+                "parameters": schema
             })
 
-        # 4. 执行循环
-        context_str = ""  # 累积的执行结果上下文
-        print("\n>>> [Phase 3] Execution & Graph Evolution Loop...")
+        # 转为 JSON 字符串，塞入 Prompt
+        tools_info_str = json.dumps(tools_list, indent=2)
+        context = self.working_memory.get_prompt_view()
 
-        for idx, step in enumerate(execution_plan):
-            task = step['task']
-            tool_data = step['tool']
+        prompt = ACTION_PROMPT.format(
+            num_tools=len(tools_list),
+            task_query=task_query,
+            tools_info=tools_info_str,
+            context=context
+        )
 
-            tool_name = tool_data['name']
-            tool_desc = self.tool_registry.get_tool(tool_name).get('meta', {}).get('description', '')
-            tool_id = tool_data['id']
-            tool_score = tool_data['score']
+        resp = await self._llm_generate_text(prompt)
+        parsed = self._parse_json(resp)
 
-            print(f"\n---------------------------------------------------------------")
-            print(f"[Step {idx + 1}] Sub-task: {task['query']}")
-            print(f"          Selected Tool: {tool_name} (SGC Score: {tool_score:.4f})")
+        if not parsed: return []
 
-            # 4.1 信息结合 & 参数生成
-            # 将工具描述传入，帮助 LLM 理解工具用途
-            args = await self.generate_tool_args(tool_name, tool_desc, task['query'], context_str)
-            print(f"          Args: {args}")
+        # 标准新格式
+        return parsed.get("tool_calls", [])
 
-            # 4.2 工具调用
-            try:
-                result = await self.call_tool(tool_name, args)
-            except Exception as e:
-                result = f"Error: {str(e)}"
+    async def verify(self, task_query: str, tool_name: str, args: Dict, result: str) -> Dict:
+        prompt = JUDGER_PROMPT.format(
+            task_query=task_query,
+            tool_name=tool_name,
+            tool_args=json.dumps(args),
+            truncated_result=str(result)[:500]
+        )
+        resp = await self._llm_generate_text(prompt)
+        res = self._parse_json(resp)
+        if not res: return {"status": "SUCCESS", "reason": "Auto-pass due to parse error"}
+        return res
 
-            # 4.3 反思 (Reflection)
-            success = await self.reflection(task['query'], tool_name, result)
+    async def re_plan(self, failure_reason: str) -> List[Dict]:
+        prompt = REPLAN_PROMPT.format(
+            original_query=self.working_memory.original_query,
+            finished_tasks=self.working_memory.finished_tasks,
+            artifacts=json.dumps(self.working_memory.artifacts),
+            failure_reason=failure_reason
+        )
+        resp = await self._llm_generate_text(prompt)
+        tasks = self._parse_json(resp)
+        return tasks if isinstance(tasks, list) else []
 
-            if success:
-                print(f"          [Status] Execution SUCCESS.")
-                context_str += f"\n[Step {idx + 1} Output ({tool_name})]: {result}"
+    async def run(self, user_query: str):
+        # 1. 初始化
+        self.working_memory = WorkingMemory(original_query=user_query)
+        self.history.append({"role": "user", "content": user_query})
+        self.trajectory_buffer = []
 
-                # 4.4 生成路径链路 & 更新 SGC 图
-                # 只有当存在上一个节点时，才构成“链路”
-                if len(self.trajectory_buffer) > 0:
-                    parent_id = self.trajectory_buffer[-1]
-                    child_id = tool_id
+        # 2. 初始规划
+        print(f"\n>>> [Planning] Decomposing User Query...")
+        task_queue = await self.decompose_query(user_query)
+        print(f"    Initial Plan: {len(task_queue)} steps.")
 
-                    # 记录可视化链路
-                    parent_name = self.tool_names[parent_id]
-                    link_str = f"{parent_name} -> {tool_name}"
-                    path_links.append(link_str)
-                    print(f"          [Link Generated] {link_str}")
+        # 3. 任务执行循环
+        task_idx = 0
+        MAX_GLOBAL_RETRIES = 3
+        global_retry_count = 0
 
-                    # --- SGC Update Core ---
-                    if parent_id != child_id:
-                        print(f"          [Graph Update] Injecting edge into SGC adjacency matrix...")
-                        # 1. 写入关系
-                        self.graph_manager.add_edge(parent_id, child_id)
-                        # 2. 立即更新向量空间 (使得未来的检索能感知到这个新的 pattern)
-                        self.retriever.final_embeddings = self.retriever.compute_sgc_embeddings()
+        # 大循环：遍历任务队列
+        while task_idx < len(task_queue):
+            current_task = task_queue[task_idx]
+            print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
 
-                # 将当前节点加入缓冲区，作为下一步的 parent
-                self.trajectory_buffer.append(tool_id)
+            # 每次新任务开始前，初始化黑名单
+            # [重要] 必须在这里重置，否则上一个任务排除的工具会影响这个任务
+            bad_tools = []
+            local_success = False
+            LOCAL_RETRIES = 2
 
+            # 局部重试循环 (Attempt Loop)
+            # 使用 while 而不是 for，以便更灵活地控制 (比如 ToolMismatch 时不消耗 attempt 计数，或者单独计数)
+            attempt = 0
+            while attempt <= LOCAL_RETRIES:
+                print(f"   [Attempt {attempt + 1}] Processing...")
+
+                # A. 检索工具 (带黑名单)
+                search_vec = self.get_text_embedding(f"{current_task['query']}")
+                # search_vec = self.get_text_embedding(f"{current_task['action']} {current_task['query']}")
+                candidates = self.retriever.search(search_vec, top_k=5, avoid_names=bad_tools)
+
+                if not candidates:
+                    print("     [Error] No candidates found.")
+                    break
+
+                # B1. LLM 选择工具 (返回列表)
+                tool_calls = await self.generate_tool_args(candidates, current_task['query'])
+
+                if not tool_calls:
+                    print("     [Error] No tools selected. Retrying...")
+                    attempt += 1
+                    continue
+
+                print(f"     [Plan] Selected {len(tool_calls)} tools: {[t['tool_name'] for t in tool_calls]}")
+                # --- 子循环：执行这一步的所有工具 ---
+                step_tools_success = True
+                last_verification_error = None  # 用于记录子循环中发生的错误
+                failed_tool_name = None
+
+                for t_idx, call in enumerate(tool_calls):
+                    tool_name = call.get('tool_name')
+                    args = call.get('arguments', {})
+
+                    print(f"       -> [Sub-call {t_idx + 1}] {tool_name}")
+
+                    # 执行
+                    try:
+                        if not self.tool_registry.get_tool(tool_name):
+                            raise ValueError(f"Tool '{tool_name}' not found")
+                        result = await self.call_tool(tool_name, args)
+                    except Exception as e:
+                        result = f"SystemException: {e}"
+                        # 这里不直接 break，而是通过 verify 来统一判断失败
+
+                    # 验证 (Verify)
+                    verification = await self.verify(current_task['query'], tool_name, args, result)
+
+                    if verification['status'] == 'SUCCESS':
+                        # 1. 记录日志
+                        self.working_memory.add_log(task_idx + 1, tool_name, args, result, "SUCCESS")
+
+                        # 2. SGC 图更新
+                        tool_id = self.tool_map.get(tool_name)
+                        if len(self.trajectory_buffer) > 0 and tool_id is not None:
+                            parent_id = self.trajectory_buffer[-1]
+                            if parent_id != tool_id:
+                                self.graph_manager.add_edge(parent_id, tool_id)
+                                self.retriever.final_embeddings = self.retriever.compute_sgc_embeddings()
+
+                        if tool_id is not None:
+                            self.trajectory_buffer.append(tool_id)
+
+                    else:
+                        # --- 单个工具失败 ---
+                        step_tools_success = False
+                        print(f"       [Fail] {tool_name}: {verification.get('reason')}")
+
+                        # 保存错误现场，供外部重试逻辑使用
+                        last_verification_error = verification
+                        failed_tool_name = tool_name
+
+                        # 中断子循环（多工具链路中只要一环断了，后面就没必要执行了）
+                        break
+
+                        # --- 子循环结束 ---
+
+                # C. 判定本轮 Attempt 结果
+                if step_tools_success:
+                    local_success = True
+                    self.working_memory.finished_tasks.append(current_task['query'])
+                    break  # 成功！跳出 attempt 循环，进入下一个 Task
+
+                else:
+                    # --- 失败处理与重试逻辑 ---
+                    err_type = last_verification_error.get('error_type') if last_verification_error else "Unknown"
+
+                    if err_type == 'ToolMismatch':
+                        print(f"     [Correction] Tool '{failed_tool_name}' mismatch. Switching tool...")
+                        if failed_tool_name: bad_tools.append(failed_tool_name)
+                        attempt += 1
+                        continue
+
+                    elif err_type == 'ArgumentError':
+                        print("     [Correction] Retrying with adjusted arguments...")
+                        attempt += 1
+                        continue
+
+                    else:
+                        print(f"     [Correction] Runtime error ({err_type}). Retrying...")
+                        attempt += 1
+                        continue
+
+            # --- 局部 attempt 循环结束 ---
+
+            # D. 决策：继续还是重规划？
+            if local_success:
+                task_idx += 1  # 推进到下一步
             else:
-                print(f"          [Status] Execution FAILED or INCOMPLETE.")
-                context_str += f"\n[Step {idx + 1} Failed]: Tool {tool_name} did not solve the task."
-                # 熔断机制：如果是遥感数据处理，通常一步错步步错，建议在此停止
-                print("          [Alert] Breaking execution chain due to failure.")
-                break
+                # 彻底失败，开始重规划
+                print(f"\n[!] Step Failed after {LOCAL_RETRIES} retries. Initiating Re-planning...")
 
-        # 5. 总结输出
-        print(f"\n>>> [Phase 4] Final Summary")
-        print(f"    Trajectory Path: {' => '.join([self.tool_names[i] for i in self.trajectory_buffer])}")
+                if global_retry_count >= MAX_GLOBAL_RETRIES:
+                    print("[!] Max global retries reached. Task Failed.")
+                    break
 
-        final_prompt = f"""
-           User Query: {user_query}
+                # 获取失败原因，用于 Prompt
+                fail_reason = "Unknown"
+                if last_verification_error:
+                    fail_reason = last_verification_error.get('reason', 'Unknown')
 
-           Execution History:
-           {context_str}
+                failure_reason_str = f"Step '{current_task['query']}' failed. Last error: {fail_reason}"
 
-           Generated Tool Path:
-           {path_links}
+                # 调用重规划
+                new_sub_tasks = await self.re_plan(failure_reason_str)
 
-           Please provide a comprehensive summary of the results. 
-           If files were generated, list their paths explicitly.
-           """
-        final_response = await self._llm_generate_text(final_prompt)
+                if new_sub_tasks:
+                    print(f"    [Re-plan] Generated {len(new_sub_tasks)} new steps.")
 
-        self.history.append({"role": "assistant", "content": final_response})
-        return final_response
+                    # 更新任务队列：保留已完成的 + 新生成的
+                    task_queue = task_queue[:task_idx] + new_sub_tasks
+
+                    # task_idx 保持不变，指向新计划的第一个任务
+                    global_retry_count += 1
+                else:
+                    print("[!] Re-planning failed to generate tasks. Aborting.")
+                    break
+        # 4. 最终总结
+        final_summary = await self._llm_generate_text(
+            f"Summarize the final result for: {user_query}\nBased on: {self.working_memory.get_prompt_view()}")
+        self.history.append({"role": "assistant", "content": final_summary})
+        return final_summary

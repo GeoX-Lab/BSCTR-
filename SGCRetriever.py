@@ -39,10 +39,23 @@ class SGCRetriever:
     # -------------------------------------------------
     # Stage 1: 基于 SGC 的粗排
     # -------------------------------------------------
-    def search(self, query_vec, top_k=5, conflict_threshold=0.1):
+    def search(self, query_vec, top_k=5, conflict_threshold=0.1, avoid_names=None):
+
+        avoid_names = avoid_names or []
         query_vec = F.normalize(query_vec, p=2, dim=1)
 
+        # 计算所有工具的相似度分数
         scores = (self.final_embeddings @ query_vec.T).squeeze()
+
+        if avoid_names:
+            for bad_name in avoid_names:
+                try:
+                    bad_idx = self.tool_names.index(bad_name)
+                    scores[bad_idx] = -float('inf')
+
+                except ValueError:
+                    pass
+
         top_scores, top_idx = torch.topk(scores, k=top_k)
 
         candidates = []
@@ -60,7 +73,8 @@ class SGCRetriever:
 
         # Stage 2：兄弟抑制
         final = self.apply_sibling_inhibition(query_vec, candidates, conflict_threshold)
-        return final[0]
+
+        return final
 
     # -------------------------------------------------
     # Stage 2: 兄弟竞争 → 抑制
