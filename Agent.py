@@ -170,7 +170,10 @@ class SGCAgent(BaseAgent):
 
         self.tool_names = list(tools.keys())
         # 提取工具描述用于初始化向量
-        tool_descp = [t.get('description', '') or t.get('name') for t in tools.values()]
+        desc = [
+            self.tool_registry.get_unified_tool_info(name)["description"]
+            for name in self.tool_names
+        ]
         self.tool_map = {name: i for i, name in enumerate(self.tool_names)}
 
         num_nodes = len(self.tool_names)
@@ -183,7 +186,7 @@ class SGCAgent(BaseAgent):
 
         # 2. 批量生成初始工具嵌入 (Raw Embeddings)
         raw_embeds_list = []
-        for desc in tool_descp:
+        for desc in desc:
             # get_text_embedding 已经处理了 device
             raw_embeds_list.append(self.get_text_embedding(desc))
 
@@ -225,9 +228,10 @@ class SGCAgent(BaseAgent):
         Step 1: 任务分解
         将用户查询分解为带有明确 'action' 的子问题序列。
         """
-        prompt = DECOMPOSE_PROMPT.format(query=query)
+        prompt = self.sys_prompt_template + DECOMPOSE_PROMPT.format(query=query)
         resp = await self._llm_generate_text(prompt)
         tasks = self._parse_json(resp)
+        self.history.append({"role": "assistant", "content": f"[Task Decompose]\n{tasks}"})
         return tasks if isinstance(tasks, list) else [{"step": 1, "action": "execute", "query": query}]
 
     async def generate_tool_args(self, candidates: List[Dict], task_query: str) -> List[Dict]:
@@ -239,18 +243,12 @@ class SGCAgent(BaseAgent):
         for cand in candidates:
             name = cand['name']
             # 获取描述
-            tool_data = self.tool_registry.get_tool(name)
-            desc = tool_data.get('meta', {}).get('description', '')
-            # 获取 Schema
-            try:
-                schema = self.tool_registry.generate_tool_schema(name)
-            except:
-                schema = "Schema unavailable"
+            info = self.tool_registry.get_unified_tool_info(name)
 
             tools_list.append({
-                "name": name,
-                "description": desc,
-                "parameters": schema
+                "name": info["name"],
+                "description": info["description"],
+                "parameters": info["parameters"]
             })
 
         # 转为 JSON 字符串，塞入 Prompt
@@ -266,6 +264,7 @@ class SGCAgent(BaseAgent):
 
         resp = await self._llm_generate_text(prompt)
         parsed = self._parse_json(resp)
+        self.history.append({"role": "assistant", "content": f"[Tool Selection]\n{parsed}"})
 
         if not parsed: return []
 
@@ -281,6 +280,7 @@ class SGCAgent(BaseAgent):
         )
         resp = await self._llm_generate_text(prompt)
         res = self._parse_json(resp)
+        self.history.append({"role": "assistant", "content": f"[Verify]\n{res}"})
         if not res: return {"status": "SUCCESS", "reason": "Auto-pass due to parse error"}
         return res
 
@@ -293,10 +293,14 @@ class SGCAgent(BaseAgent):
         )
         resp = await self._llm_generate_text(prompt)
         tasks = self._parse_json(resp)
+        self.history.append({"role": "assistant", "content": f"[RePlan]\n{tasks}"})
         return tasks if isinstance(tasks, list) else []
 
     async def run(self, user_query: str):
         # 1. 初始化
+        if self.retriever is None or self.graph_manager is None:
+            self.init_sgc_system()
+
         self.working_memory = WorkingMemory(original_query=user_query)
         self.history.append({"role": "user", "content": user_query})
         self.trajectory_buffer = []

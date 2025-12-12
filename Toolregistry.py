@@ -80,19 +80,38 @@ class ToolRegistry:
             "required": required
         }
 
-    def generate_llm_tool_format(self, tool_name: str) -> str:
+    def get_unified_tool_info(self, tool_name: str) -> dict:
+        """
+        返回一个完全统一、结构化的工具信息，
+        包含 embedding 和 LLM 都能一致看到的字段。
+
+        返回结构：
+        {
+            "name": "...",
+            "description": "...",
+            "parameters": {...schema...},
+            "meta": {...原始meta...}
+        }
+        """
         tool = self.get_tool(tool_name)
         if not tool:
             raise KeyError(f"Tool '{tool_name}' not found")
-        meta = tool.get("meta", {})
-        schema = self.generate_tool_schema(tool_name)
 
-        tool_format = {
-            "type": "function",
-            "function": {
-                "name": tool_name,
-                "description": meta.get("description", ""),
-                "parameters": schema
-            }
+        meta = tool.get("meta", {})
+        desc = (
+                meta.get("description")
+                or tool.get("description")
+        )
+        desc = desc.strip() if isinstance(desc, str) else tool_name
+
+        try:
+            schema = self.generate_tool_schema(tool_name)
+        except Exception:
+            schema = {}
+
+        return {
+            "name": tool_name,
+            "description": desc,
+            "parameters": schema,
+            "meta": meta
         }
-        return json.dumps(tool_format, ensure_ascii=False, indent=4)

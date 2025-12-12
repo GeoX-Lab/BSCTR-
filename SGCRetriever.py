@@ -79,77 +79,83 @@ class SGCRetriever:
     # -------------------------------------------------
     # Stage 2: 兄弟竞争 → 抑制
     # -------------------------------------------------
-    def apply_sibling_inhibition(self, query_vec, candidates, threshold):
+    def apply_sibling_inhibition(self, query_vec, candidates, threshold=0.1):
+        """
+        方向增强的兄弟抑制策略：
+        - 只在兄弟分数差 >= threshold 时触发
+        - 使用 query 与 (leader - challenger) 的余弦方向性判断
+        - 根据方向判断翻转顺序（模拟语义优先级）
+        """
 
-        # 1. 获取 child → parents 映射
         child_to_parents = self.graph.get_parent_map()
 
+        # 构建兄弟簇 {parent -> [child_candidates]}
         clusters = defaultdict(list)
-        # [优化] 使用 set 记录已经处理过的 (candidate_id_A, candidate_id_B)
-        # 避免同一个 A, B 因为共享多个父节点而被多次 PK
-        processed_pairs = set()
-
-        # 2. 构建父节点簇
         for c in candidates:
-            parents = child_to_parents.get(c["id"], [])
-            # 如果是孤立节点，跳过
-            if not parents:
-                continue
+            cid = c["id"]
+            parents = child_to_parents.get(cid, [])
+
             for p in parents:
                 clusters[p].append(c)
 
         rerank_needed = False
 
-        # 3. 对每个父节点簇执行兄弟 PK
-        for pid, group in clusters.items():
+        print("\n[Stage 2] Sibling inhibition (direction-based):")
+
+        # 遍历每个父节点簇
+        for parent_id, group in clusters.items():
+
             if len(group) < 2:
                 continue
 
-            # 必须排序！确保 group[0] 是当前最高分
+            # 按当前分数排序
             group.sort(key=lambda x: x["score"], reverse=True)
 
             leader = group[0]
             challenger = group[1]
 
-            # [优化] 简化去重逻辑：只看两个工具 ID，不看父节点 ID
-            # 无论它们共享几个父亲，向量差异是固定的，PK一次就够了
-            pair_sig = tuple(sorted((leader["id"], challenger["id"])))
-            if pair_sig in processed_pairs:
+            diff = abs(leader["score"] - challenger["score"])
+
+            print(f"\n  Parent: {self.tool_names[parent_id]}")
+            print(f"    Leader:     {leader['name']} ({leader['score']:.4f})")
+            print(f"    Challenger: {challenger['name']} ({challenger['score']:.4f})")
+            print(f"    Score diff = {diff:.4f}")
+
+            # ---- 触发条件：兄弟差值 >= 阈值 ----
+            if diff < threshold:
+                print("    -> diff < threshold，保持原顺序")
                 continue
-            processed_pairs.add(pair_sig)
 
-            diff = leader["score"] - challenger["score"]
-            if diff > threshold:
-                continue
+            print("    -> diff >= threshold，进行方向判定")
 
-            print(f"\n[Conflict Detected] Parent {self.tool_names[pid]}")
-            print(f"  Leader: {leader['name']} ({leader['score']:.4f})")
-            print(f"  Challenger: {challenger['name']} ({challenger['score']:.4f})")
+            # ===== 核心逻辑：方向判断 =====
+            v_diff = (leader["vec"] - challenger["vec"]).unsqueeze(1)  # (D,1)
+            directional_score = (query_vec @ v_diff).item()
 
-            # [Fix] 移除归一化
-            # 我们需要真实的差异幅度。如果差异极小(噪声)，归一化会放大噪声导致随机反转。
-            v_diff = leader["vec"] - challenger["vec"]
-            # v_diff = F.normalize(v_diff, p=2, dim=0) <--- DELETED
+            print(f"    direction(query, leader - challenger) = {directional_score:.4f}")
 
-            # 计算投影
-            # query_vec: [1, D], v_diff: [D]
-            # 这里的 .item() 会自动处理标量转换
-            dir_score = (query_vec @ v_diff).item()
-            print(f"  Sim(Query, V_diff) = {dir_score:.4f}")
+            # 如果方向说明 challenger 更适合任务 → 翻转顺序
+            if directional_score < 0:
+                print(f"    -> Challenger '{challenger['name']}' wins, flip scores")
 
-            if dir_score < 0:
-                print(f"  -> Challenger {challenger['name']} WINS, boosting score!")
-                # 赋予微小的优势，完成逆转
-                challenger["score"] = leader["score"] + 1e-4
+                # 翻转得分（更稳定的方式）
+                leader["score"], challenger["score"] = (
+                    challenger["score"],
+                    leader["score"]
+                )
+
                 rerank_needed = True
-            else:
-                print(f"  -> Leader holds position.")
 
-        # 4. 若发生变化 → 全局重排
+            else:
+                print("    -> Leader 保持领先")
+
+        # 全局重新排序
         if rerank_needed:
             candidates.sort(key=lambda x: x["score"], reverse=True)
-            print("\n[Re-ranking Final Result]:")
+
+            print("\n[Re-ranked result after sibling inhibition]:")
             for i, c in enumerate(candidates):
                 print(f"  {i + 1}. {c['name']} ({c['score']:.4f})")
 
         return candidates
+
