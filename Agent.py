@@ -209,7 +209,7 @@ class SGCAgent(BaseAgent):
     async def _llm_generate_text(self, prompt: str) -> str:
         """辅助方法：非流式获取 LLM 完整响应"""
         acc = []
-        async for chunk in self.llm.generate_stream_res(prompt=prompt, history=self.history):
+        async for chunk in self.llm.generate_stream_res(prompt=prompt):
             if chunk.get("type") in ("text", "stream", "final"):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
@@ -288,7 +288,7 @@ class SGCAgent(BaseAgent):
         prompt = REPLAN_PROMPT.format(
             original_query=self.working_memory.original_query,
             finished_tasks=self.working_memory.finished_tasks,
-            artifacts=json.dumps(self.working_memory.artifacts),
+            failed_steps=self.working_memory.recent_steps[-1],
             failure_reason=failure_reason
         )
         resp = await self._llm_generate_text(prompt)
@@ -318,6 +318,7 @@ class SGCAgent(BaseAgent):
         # 大循环：遍历任务队列
         while task_idx < len(task_queue):
             current_task = task_queue[task_idx]
+            self.working_memory.start_task(current_task['query'])
             print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
 
             # 每次新任务开始前，初始化黑名单
@@ -352,7 +353,7 @@ class SGCAgent(BaseAgent):
                 print(f"     [Plan] Selected {len(tool_calls)} tools: {[t['tool_name'] for t in tool_calls]}")
                 # --- 子循环：执行这一步的所有工具 ---
                 step_tools_success = True
-                last_verification_error = None  # 用于记录子循环中发生的错误
+                last_verification_error = None
                 failed_tool_name = None
 
                 for t_idx, call in enumerate(tool_calls):
@@ -375,7 +376,7 @@ class SGCAgent(BaseAgent):
 
                     if verification['status'] == 'SUCCESS':
                         # 1. 记录日志
-                        self.working_memory.add_log(task_idx + 1, tool_name, args, result, "SUCCESS")
+                        self.working_memory.record_tool_success(task_idx + 1, tool_name, args, result)
 
                         # 2. SGC 图更新
                         tool_id = self.tool_map.get(tool_name)
@@ -397,6 +398,12 @@ class SGCAgent(BaseAgent):
                         last_verification_error = verification
                         failed_tool_name = tool_name
 
+                        self.working_memory.record_tool_failure(
+                            current_task['query'],
+                            tool_name,
+                            verification.get("error_type"),
+                            verification.get("reason")
+                        )
                         # 中断子循环（多工具链路中只要一环断了，后面就没必要执行了）
                         break
 
