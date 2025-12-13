@@ -107,6 +107,7 @@ The current execution path has encountered a critical failure. You need to devis
 ### Situation Report
 - **Original Goal**: "{original_query}"
 - **Successfully Completed**: {finished_tasks}
+- **Failed Steps**: {failed_steps}
 - **Critical Failure**: {failure_reason}
 
 ### Instructions:
