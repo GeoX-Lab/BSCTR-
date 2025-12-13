@@ -16,8 +16,6 @@ class SGCRetriever:
         self.raw_embeddings = F.normalize(raw_embeddings, p=2, dim=1)
         self.alpha = alpha
 
-        self.final_embeddings = self.compute_sgc_embeddings()
-
     # -------------------------------------------------
     # 生成 SGC 特征
     # -------------------------------------------------
@@ -44,8 +42,9 @@ class SGCRetriever:
         avoid_names = avoid_names or []
         query_vec = F.normalize(query_vec, p=2, dim=1)
 
+        z = self.compute_sgc_embeddings()
         # 计算所有工具的相似度分数
-        scores = (self.final_embeddings @ query_vec.T).squeeze()
+        scores = (z @ query_vec.T).squeeze()
 
         if avoid_names:
             for bad_name in avoid_names:
@@ -64,7 +63,7 @@ class SGCRetriever:
                 "id": i.item(),
                 "name": self.tool_names[i],
                 "score": s.item(),
-                "vec": self.final_embeddings[i]
+                "vec": z[i]
             })
 
         print("\n[Stage 1] SGC top candidates:")

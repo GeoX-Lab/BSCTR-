@@ -137,7 +137,6 @@ class SGCAgent(BaseAgent):
 
         # 3. 轨迹缓冲区
         self.attempt_tool_chain = []
-        self.subtask_tool_chain = []
 
     def get_text_embedding(self, text: str) -> torch.Tensor:
 
@@ -320,6 +319,7 @@ class SGCAgent(BaseAgent):
         while task_idx < len(task_queue):
             current_task = task_queue[task_idx]
             self.working_memory.start_task(current_task['query'])
+            self.attempt_tool_chain = []
             print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
 
             # 每次新任务开始前，初始化黑名单
@@ -412,8 +412,6 @@ class SGCAgent(BaseAgent):
 
                     if len(self.attempt_tool_chain) >= 2:
                         self.graph_manager.update_from_trajectory(self.attempt_tool_chain)
-
-                    self.subtask_tool_chain.extend(self.attempt_tool_chain)
                     self.attempt_tool_chain = []
 
                     self.working_memory.finished_tasks.append(current_task['query'])
