@@ -1,45 +1,62 @@
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import Dict, List, Any, Optional
 import json
 
 
 @dataclass
 class WorkingMemory:
-    original_query: str                                      # 初始任务
-    finished_tasks: List[str] = field(default_factory=list)  # 子任务序列
-    execution_log: List[str] = field(default_factory=list)   # 执行日志
+    # === 全局目标 ===
+    original_query: str
 
-    def add_log(self, step: int, tool: str, args: Dict, result: str, status: str):
-        """
-        记录完整的执行三元组: (Tool, Args, Result)
-        """
-        # 1. 为了防止 Log 过长，对参数做简化的序列化
-        # 比如把很长的 GeoJSON 坐标截断，只保留关键路径和配置
-        args_str = self._format_args(args)
+    # === 任务状态 ===
+    finished_tasks: List[str] = field(default_factory=list)
+    current_task: Optional[str] = None
 
-        # 2. 截断 Result
-        res_str = str(result)
-        if len(res_str) > 200:
-            res_str = res_str[:200] + "...(truncated)"
+    # === 工具执行上下文 ===
+    tool_context: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    # tool_name -> {last_args, last_result_summary, success}
 
-        log_entry = f"[Step {step}] Tool: {tool}\n    Args: {args_str}\n    Result ({status}): {res_str}"
-        self.execution_log.append(log_entry)
+    # === 中间产物 ===
+    artifacts: Dict[str, Any] = field(default_factory=dict)
+    # e.g. {"ndvi_raster": "...", "roi_mask": "..."}
 
-    def _format_args(self, args: Dict) -> str:
-        """辅助函数：美化并截断参数字符串"""
-        clean_args = {}
-        for k, v in args.items():
-            v_str = str(v)
-            # 如果某个参数值特别长截断它
-            if len(v_str) > 100:
-                clean_args[k] = v_str[:50] + "..."
-            else:
-                clean_args[k] = v
-        return json.dumps(clean_args, ensure_ascii=False)
+    # === 最近执行记录（压缩态）===
+    recent_steps: List[Dict[str, Any]] = field(default_factory=list)
+
+    # ---------- 更新接口 ----------
+
+    def start_task(self, task_query: str):
+        self.current_task = task_query
+
+    def record_tool_success(self, step: int, tool: str, args: Dict, result_summary: str):
+        self.tool_context[tool] = {
+            "step": step,
+            "last_args": args,
+            "last_result": result_summary,
+            "success": True
+        }
+        self.recent_steps.append({
+            "tool": tool,
+            "status": "SUCCESS"
+        })
+
+    def record_tool_failure(self, current_task: str, tool: str, error_type: str, reason: str):
+        self.recent_steps.append({
+            "current_task": current_task,
+            "tool": tool,
+            "status": "FAIL",
+            "error_type": error_type,
+            'reason': reason
+        })
+    # ---------- 给 LLM 的视图 ----------
 
     def get_prompt_view(self) -> str:
-        """生成给 LLM 看的压缩版记忆"""
-        return json.dumps({
+        """给 Planner / Tool Selector / RePlanner 使用的状态快照"""
+        view = {
+            "goal": self.original_query,
+            "current_task": self.current_task,
             "finished_tasks": self.finished_tasks,
-            "recent_history": self.execution_log[-3:]
-        }, indent=2)
+            "available_artifacts": list(self.artifacts.keys()),
+            "recent_steps": self.recent_steps[-3:]
+        }
+        return json.dumps(view, ensure_ascii=False, indent=2)
