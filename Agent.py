@@ -135,8 +135,9 @@ class SGCAgent(BaseAgent):
         self.retriever = None
         self.raw_embeddings = None
 
-        # 3. 轨迹缓冲区 (用于记录当前会话的任务链: [id1, id2, ...])
-        self.trajectory_buffer = []
+        # 3. 轨迹缓冲区
+        self.attempt_tool_chain = []
+        self.subtask_tool_chain = []
 
     def get_text_embedding(self, text: str) -> torch.Tensor:
 
@@ -285,6 +286,7 @@ class SGCAgent(BaseAgent):
         return res
 
     async def re_plan(self, failure_reason: str) -> List[Dict]:
+        self.attempt_tool_chain = []
         prompt = REPLAN_PROMPT.format(
             original_query=self.working_memory.original_query,
             finished_tasks=self.working_memory.finished_tasks,
@@ -303,7 +305,6 @@ class SGCAgent(BaseAgent):
 
         self.working_memory = WorkingMemory(original_query=user_query)
         self.history.append({"role": "user", "content": user_query})
-        self.trajectory_buffer = []
 
         # 2. 初始规划
         print(f"\n>>> [Planning] Decomposing User Query...")
@@ -378,16 +379,10 @@ class SGCAgent(BaseAgent):
                         # 1. 记录日志
                         self.working_memory.record_tool_success(task_idx + 1, tool_name, args, result)
 
-                        # 2. SGC 图更新
+                        # 2. 图记录
                         tool_id = self.tool_map.get(tool_name)
-                        if len(self.trajectory_buffer) > 0 and tool_id is not None:
-                            parent_id = self.trajectory_buffer[-1]
-                            if parent_id != tool_id:
-                                self.graph_manager.add_edge(parent_id, tool_id)
-                                self.retriever.final_embeddings = self.retriever.compute_sgc_embeddings()
-
                         if tool_id is not None:
-                            self.trajectory_buffer.append(tool_id)
+                            self.attempt_tool_chain.append(tool_id)
 
                     else:
                         # --- 单个工具失败 ---
@@ -404,6 +399,8 @@ class SGCAgent(BaseAgent):
                             verification.get("error_type"),
                             verification.get("reason")
                         )
+                        # 轨迹回滚
+                        self.attempt_tool_chain = []
                         # 中断子循环（多工具链路中只要一环断了，后面就没必要执行了）
                         break
 
@@ -412,6 +409,13 @@ class SGCAgent(BaseAgent):
                 # C. 判定本轮 Attempt 结果
                 if step_tools_success:
                     local_success = True
+
+                    if len(self.attempt_tool_chain) >= 2:
+                        self.graph_manager.update_from_trajectory(self.attempt_tool_chain)
+
+                    self.subtask_tool_chain.extend(self.attempt_tool_chain)
+                    self.attempt_tool_chain = []
+
                     self.working_memory.finished_tasks.append(current_task['query'])
                     break  # 成功！跳出 attempt 循环，进入下一个 Task
 
