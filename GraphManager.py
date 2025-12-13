@@ -17,9 +17,9 @@ class GraphManager:
     # -----------------------
     # 图更新逻辑
     # -----------------------
-    def add_edge(self, parent: int, child: int):
+    def add_edge(self, parent, child, weight=1.0):
         if parent != child:
-            self.adj[parent, child] = 1.0
+            self.adj[parent, child] += weight
 
     def update_from_trajectory(self, trajectory: list):
         """
@@ -27,10 +27,10 @@ class GraphManager:
         """
         if len(trajectory) < 2:
             return
-        # [Fix] 转换为 tensor 以确保索引操作的安全性
+        # 转换为 tensor 以确保索引操作的安全性
         parents = torch.tensor(trajectory[:-1], dtype=torch.long, device=self.device)
         children = torch.tensor(trajectory[1:], dtype=torch.long, device=self.device)
-        self.adj[parents, children] = 1.0
+        self.adj[parents, children] += 1.0
 
     # -----------------------
     # 图数据输出（供 SGC + 检索）
