@@ -11,6 +11,7 @@ from GraphManager import GraphManager
 from SGCRetriever import SGCRetriever
 from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT, JUDGER_PROMPT
 
+
 class BaseAgent:
     def __init__(self, initial_model: str, sys_prompt_template: str, output_dir: str = "./outputs/outputs.json"):
 
@@ -107,11 +108,12 @@ class BaseAgent:
 
         return result
 
+
 class SGCAgent(BaseAgent):
     def __init__(self,
                  initial_model: str,
                  sys_prompt_template: SYSTEM_PROMPT,
-                 output_dir: str = "./outputs/outputs.json",
+                 output_dir: str = "./outputs/outputs.jsonl",
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
         super().__init__(initial_model, sys_prompt_template, output_dir)
@@ -137,6 +139,18 @@ class SGCAgent(BaseAgent):
 
         # 3. 轨迹缓冲区
         self.attempt_tool_chain = []
+
+    def save_data(self, query: str, final_result: str, status: str = "success"):
+
+        data = {
+            "query": query,
+            "status": status,
+            "final_result": final_result,
+            "history": list(self.history),
+        }
+        with open(self.output_dir, "a", encoding="utf-8") as f:
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
+        print(f"[*] Task archived to {self.output_dir}")
 
     def get_text_embedding(self, text: str) -> torch.Tensor:
 
@@ -206,10 +220,10 @@ class SGCAgent(BaseAgent):
         )
         print("[*] SGC System ready.")
 
-    async def _llm_generate_text(self, prompt: str) -> str:
+    async def _llm_generate_text(self, prompt: str, history: List[Dict] = None) -> str:
         """辅助方法：非流式获取 LLM 完整响应"""
         acc = []
-        async for chunk in self.llm.generate_stream_res(prompt=prompt):
+        async for chunk in self.llm.generate_stream_res(prompt=prompt, history=history):
             if chunk.get("type") in ("text", "stream", "final"):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
@@ -299,6 +313,8 @@ class SGCAgent(BaseAgent):
 
     async def run(self, user_query: str):
         # 1. 初始化
+        self.history = []
+
         if self.retriever is None or self.graph_manager is None:
             self.init_sgc_system()
 
@@ -326,6 +342,7 @@ class SGCAgent(BaseAgent):
             # [重要] 必须在这里重置，否则上一个任务排除的工具会影响这个任务
             bad_tools = []
             local_success = False
+            last_verification_error = None
             LOCAL_RETRIES = 2
 
             # 局部重试循环 (Attempt Loop)
@@ -472,7 +489,8 @@ class SGCAgent(BaseAgent):
                     print("[!] Re-planning failed to generate tasks. Aborting.")
                     break
         # 4. 最终总结
-        final_summary = await self._llm_generate_text(
-            f"Summarize the final result for: {user_query}\nBased on: {self.working_memory.get_prompt_view()}")
+        final_prompt = f"Summarize the final result for: {user_query}\nBased on: {self.working_memory.get_prompt_view()}"
+        final_summary = await self._llm_generate_text(prompt=final_prompt, history=self.history)
         self.history.append({"role": "assistant", "content": final_summary})
+        self.save_data(query=user_query, final_result=final_summary)
         return final_summary
