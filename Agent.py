@@ -13,7 +13,7 @@ from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT
 
 
 class BaseAgent:
-    def __init__(self, initial_model: str, sys_prompt_template: str, output_dir: str = "./outputs/outputs.json"):
+    def __init__(self, initial_model: str, sys_prompt_template: str, output_dir: str):
 
         self.initial_model = initial_model
         self.sys_prompt_template = sys_prompt_template
@@ -112,11 +112,9 @@ class BaseAgent:
 class SGCAgent(BaseAgent):
     def __init__(self,
                  initial_model: str,
-                 sys_prompt_template: SYSTEM_PROMPT,
-                 output_dir: str = "./outputs/outputs.jsonl",
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
-        super().__init__(initial_model, sys_prompt_template, output_dir)
+        super().__init__(initial_model, SYSTEM_PROMPT, "./outputs/outputs.jsonl")
 
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")
