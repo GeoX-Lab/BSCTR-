@@ -1,6 +1,7 @@
 from typing import Callable, Dict, Any
 import json
 import importlib
+from fastmcp import FastMCP
 
 class ToolRegistry:
     def __init__(self):
@@ -51,6 +52,35 @@ class ToolRegistry:
             return "Meta must be a dictionary!"
         self.tools[tool_name] = {"callable": tool_callable, "meta": meta}
 
+    def load_from_fastmcp(self, mcp: FastMCP):
+        """
+        解析 FastMCP 对象，将所有 @mcp.tool 注册到当前 Registry。
+        """
+        print(f"[*] Loading tools from FastMCP: {mcp.name}...")
+
+        # 遍历 FastMCP 内部存储的工具字典
+        # FastMCP 的 _tools 属性存储了所有注册的工具定义
+        for name, tool_def in mcp._tools.items():
+            # 1. 获取函数本体 (Executable)
+            # tool_def.fn 就是那个被装饰的 Python 原生函数
+            tool_fn = tool_def.fn
+
+            # 2. 获取元数据 (Metadata)
+            # FastMCP 已经自动生成了标准的 parameters schema (OpenAI 格式)
+            schema = tool_def.parameters_schema
+            description = tool_def.description or ""
+
+            # 3. 构建 meta 字典 (适配你的 get_unified_tool_info 逻辑)
+            # 你的代码逻辑是优先读取 meta['parameters']，所以直接存进去即可
+            meta = {
+                "description": description,
+                "parameters": schema
+            }
+
+            # 4. 注册
+            self.register_tool(name, tool_fn, meta)
+            print(f"    - Registered MCP tool: {name}")
+
     def generate_tool_schema(self, tool_name: str) -> dict:
         """
         生成工具的 schema，供 LLM 解析使用。
@@ -98,20 +128,21 @@ class ToolRegistry:
             raise KeyError(f"Tool '{tool_name}' not found")
 
         meta = tool.get("meta", {})
-        desc = (
-                meta.get("description")
-                or tool.get("description")
-        )
-        desc = desc.strip() if isinstance(desc, str) else tool_name
+        if "parameters" in meta and meta["parameters"]:
+            schema = meta["parameters"]
+        else:
+            # 否则尝试根据函数签名生成 (兼容旧逻辑)
+            try:
+                schema = self.generate_tool_schema(tool_name)
+            except Exception:
+                schema = {}
 
-        try:
-            schema = self.generate_tool_schema(tool_name)
-        except Exception:
-            schema = {}
+            # 描述优先取 meta 里的
+        desc = meta.get("description") or tool.get("description") or tool_name
 
         return {
             "name": tool_name,
-            "description": desc,
+            "description": desc.strip(),
             "parameters": schema,
             "meta": meta
         }

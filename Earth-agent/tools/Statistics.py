@@ -6,11 +6,7 @@ from fastmcp import FastMCP
 from utils import read_image, read_image_uint8
 
 mcp = FastMCP()
-parser = argparse.ArgumentParser()
-parser.add_argument('--temp_dir', type=str)
-args, unknown = parser.parse_known_args()
-
-TEMP_DIR = Path(args.temp_dir)
+TEMP_DIR = Path("./tools_outputs")
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -3209,7 +3205,3 @@ def apply_cloud_mask(sr_band_path, qa_pixel_path, output_path):
         dst.write(band.astype(rasterio.float32), 1)  # Write the masked band
     
     return f'Result saved at {TEMP_DIR / output_path}'
-
-
-if __name__ == "__main__":
-    mcp.run()

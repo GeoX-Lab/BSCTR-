@@ -7,11 +7,7 @@ from utils import read_image, read_image_uint8
 
 
 mcp = FastMCP()
-parser = argparse.ArgumentParser()
-parser.add_argument('--temp_dir', type=str)
-args, unknown = parser.parse_known_args()
-
-TEMP_DIR = Path(args.temp_dir)
+TEMP_DIR = Path("./tools_outputs")
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -664,6 +660,3 @@ def ChangeOS(pre_image_path: str, post_image_path: str, output_path: str):
         return get_model_output('ChangeOS_Building_Extraction', pre_image_path, output_path=output_path)
     else:
         return get_model_output('ChangeOS', pre_image_path, post_image_path=post_image_path, output_path=output_path)
-
-if __name__ == "__main__":
-    mcp.run()

@@ -1,16 +1,9 @@
-import argparse
-
 from pathlib import Path
 from fastmcp import FastMCP
 from utils import read_image, read_image_uint8
 
-
 mcp = FastMCP()
-parser = argparse.ArgumentParser()
-parser.add_argument('--temp_dir', type=str)
-args, unknown = parser.parse_known_args()
-
-TEMP_DIR = Path(args.temp_dir)
+TEMP_DIR = Path("./tools_outputs")
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -741,7 +734,3 @@ def count_spikes_from_values(values, spike_threshold=0.1, verbose=True):
         print(f"\nTotal number of spikes detected: {spike_count}")
 
     return spike_count
-
-
-if __name__ == "__main__":
-    mcp.run()
