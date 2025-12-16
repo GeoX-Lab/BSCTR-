@@ -41,7 +41,7 @@ You have {num_tools} candidate tools.
 Select the **BEST** tools for the current sub-task and configure its arguments.
 
 ### 1. Current Sub-Task
-"{task_query}"
+{task_query}
 (Pay attention to spatial constraints, time ranges, bands, and cloud cover).
 
 ### 2. Candidate Tools

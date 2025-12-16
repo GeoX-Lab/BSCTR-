@@ -1,7 +1,12 @@
 import argparse
+
 from pathlib import Path
+from fastmcp import FastMCP
+
 from utils import read_image, read_image_uint8
 
+
+mcp = FastMCP()
 parser = argparse.ArgumentParser()
 parser.add_argument('--temp_dir', type=str)
 args, unknown = parser.parse_known_args()
@@ -10,6 +15,32 @@ TEMP_DIR = Path(args.temp_dir)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@mcp.tool(description='''
+Compute Precipitable Water Vapor (PWV) image from local MODIS surface reflectance band files
+using the band ratio method.
+
+This method uses surface reflectance bands:
+- sur_refl_b02 (0.865 μm), sur_refl_b05 (1.240 μm): atmospheric window bands
+- sur_refl_b17, sur_refl_b18, sur_refl_b19: water vapor absorption bands
+          
+Data Source :
+    - Bands used:
+        * "sur_refl_b02": 0.865 μm (NIR window)
+        * "sur_refl_b05": 1.240 μm (SWIR window)
+        * "sur_refl_b17": 0.905 μm (H₂O absorption)
+        * "sur_refl_b18": 0.936 μm (H₂O absorption)
+        * "sur_refl_b19": 0.940 μm (H₂O absorption)
+Parameters:
+    sur_refl_b02_path (str): File path to band sur_refl_b02 (0.865 um) GeoTIFF.
+    sur_refl_b05_path (str): File path to band sur_refl_b05 (1.240 um) GeoTIFF.
+    sur_refl_b17_path (str): File path to band sur_refl_b17 GeoTIFF.
+    sur_refl_b18_path (str): File path to band sur_refl_b18 GeoTIFF.
+    sur_refl_b19_path (str): File path to band sur_refl_b19 GeoTIFF.
+    output_path (str): relative path for the output raster file, e.g. "question17/pwv_2022-01-16.tif"
+
+Returns:
+    str: Path to the saved PWV GeoTIFF.
+''')
 def band_ratio(
     sur_refl_b02_path: str,
     sur_refl_b05_path: str,
@@ -103,6 +134,21 @@ def band_ratio(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+
+
+@mcp.tool(description='''
+Estimate Land Surface Temperature (LST) using the Single-Channel method, with NDVI-based emissivity estimation from RED and NIR bands.
+
+Parameters:
+    bt_path (str): Brightness Temperature GeoTIFF (Kelvin).
+    red_path (str): Red band GeoTIFF (e.g., Landsat 8 Band 4).
+    nir_path (str): NIR band GeoTIFF (e.g., Landsat 8 Band 5).
+    output_path (str): relative path for the output raster file, e.g. "question17/lst_2022-01-16.tif"
+
+Returns:
+    str: Path to saved LST GeoTIFF.
+''')
 def lst_single_channel(
     bt_path: str,
     red_path: str,
@@ -181,6 +227,21 @@ def lst_single_channel(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+@mcp.tool(description='''
+Estimate Land Surface Temperature (LST) using the multi-channel algorithm.
+
+Requires local input files:
+- Two thermal infrared bands (e.g., Band 31 and Band 32) as GeoTIFF files.
+
+Parameters:
+    band31_path (str): Path to local GeoTIFF file for thermal band 31 (~11 μm).
+    band32_path (str): Path to local GeoTIFF file for thermal band 32 (~12 μm).
+    output_path (str): Relative path for the output raster file, e.g. "question17/lst_2022-01-16.tif"
+
+Returns:
+    str: Local file path of the exported LST image.
+''')
 def lst_multi_channel(
     band31_path: str,
     band32_path: str,
@@ -241,6 +302,28 @@ def lst_multi_channel(
         dst.write(lst.astype(np.float32), 1)
 
     return f'Result saved at {TEMP_DIR / output_path}'
+
+
+@mcp.tool(description='''
+Estimate Land Surface Temperature (LST) or Precipitable Water Vapor (PWV) using the split-window algorithm.
+
+Requires local input files:
+- Thermal band 31 (~11 μm) GeoTIFF
+- Thermal band 32 (~12 μm) GeoTIFF
+- Emissivity band 31 GeoTIFF
+- Emissivity band 32 GeoTIFF
+
+Parameters:
+    band31_path (str): Path to thermal band 31 GeoTIFF.
+    band32_path (str): Path to thermal band 32 GeoTIFF.
+    emissivity31_path (str): Path to emissivity band 31 GeoTIFF.
+    emissivity32_path (str): Path to emissivity band 32 GeoTIFF.
+    parameter (str): "LST" or "PWV" to specify output.
+    output_path (str): Relative path for the output raster file, e.g. "question17/lst_2022-01-16.tif"
+
+Returns:
+    str: Path to exported output GeoTIFF.
+''')
 
 def split_window(
     band31_path: str,
@@ -374,6 +457,20 @@ def split_window(
 
     return f"Result saved at {TEMP_DIR / output_path}"
 
+
+
+@mcp.tool(description='''
+Estimate Land Surface Temperature (LST) using an enhanced Temperature Emissivity Separation (TES) algorithm
+with empirical emissivity estimation.
+
+Parameters:
+    tir_band_paths (list[str]): List of Thermal Infrared (TIR) GeoTIFF file paths (e.g., ASTER Bands 10–14).
+    representative_band_index (int): Index of the TIR band to use as reference brightness temperature (e.g., 3 for Band 13).
+    output_path (str): relative path for the output raster file, e.g. "question17/lst_2022-01-16.tif"
+
+Returns:
+    str: Path to the output GeoTIFF containing three bands: LST, emissivity, and emissivity variation.
+''')
 def temperature_emissivity_separation(
     tir_band_paths: list[str],
     representative_band_index: int,
@@ -460,6 +557,30 @@ def temperature_emissivity_separation(
 
     return f'Result saved at {out_full_path}'
 
+
+
+
+@mcp.tool(description='''
+Estimate land surface temperature (LST) from local MODIS Day and Night brightness temperatures
+using a single-channel correction method.
+
+Requires local input GeoTIFF files:
+- BT_day_path: Brightness Temperature Day band (e.g., MODIS LST_Day_1km scaled by 0.02)
+- BT_night_path: Brightness Temperature Night band (e.g., MODIS LST_Night_1km scaled by 0.02)
+- Emis_day_path: Emissivity Day band (e.g., MODIS Emis_31 scaled by 0.002)
+- Emis_night_path: Emissivity Night band (e.g., MODIS Emis_32 scaled by 0.002)
+
+Parameters:
+    BT_day_path (str): Path to local Brightness Temperature Day GeoTIFF.
+    BT_night_path (str): Path to local Brightness Temperature Night GeoTIFF.
+    Emis_day_path (str): Path to local Emissivity Day GeoTIFF.
+    Emis_night_path (str): Path to local Emissivity Night GeoTIFF.
+    output_path (str): relative path for the output raster file, e.g. "question17/lst_2022-01-16.tif"
+
+Returns:
+    str: Path to the exported GeoTIFF containing six bands:
+         LST_Day, LST_Night, BT_Day, BT_Night, Emis_Day, Emis_Night.
+''')
 def modis_day_night_lst(
     BT_day_path: str,
     BT_night_path: str,
@@ -576,6 +697,21 @@ def modis_day_night_lst(
 
     return f"Result saved at {TEMP_DIR / output_path}"
 
+
+@mcp.tool(description='''
+Estimate land surface temperature (LST) and emissivity using improved Three-Temperature Method (TTM)
+from three local thermal band GeoTIFF files.
+
+Uses all three bands to form a system of equations and solves per-pixel with physical constraints.
+
+Parameters:
+    tir_band_paths (list[str]): Paths to three thermal band GeoTIFFs (e.g. ASTER B10, B11, B12).
+    output_path (str): relative path for the output raster file, e.g. "question17/lst_2022-01-16.tif"
+    wavelengths (list[float], optional): Wavelengths (μm) for each band. Default [8.3, 8.65, 9.1].
+
+Returns:
+    str: Path to exported GeoTIFF with LST and emissivity bands.
+''')
 def ttm_lst(
     tir_band_paths: list[str],
     output_path: str,
@@ -681,6 +817,23 @@ def ttm_lst(
 
     return f"Result saved at {TEMP_DIR / output_path}"
 
+
+
+@mcp.tool(description='''
+Calculate the average Land Surface Temperature (LST) across multiple images
+where NDVI is either above or below a given threshold.
+
+Parameters:
+    red_paths (str or list): Path(s) to red band image(s).
+    nir_paths (str or list): Path(s) to near-infrared (NIR) image(s).
+    lst_paths (str or list): Path(s) to land surface temperature (LST) image(s).
+    ndvi_threshold (float): Threshold value for NDVI.
+    mode (str): 'above' for NDVI >= threshold, 'below' for NDVI < threshold.
+
+Returns:
+    float: Mean of LST values over selected NDVI regions across all image sets.
+               Returns np.nan if no valid pixels found.
+''')
 def calculate_mean_lst_by_ndvi(
     red_paths: str | list[str],
     nir_paths: str | list[str],
@@ -752,6 +905,20 @@ def calculate_mean_lst_by_ndvi(
     combined_lst_values = np.concatenate(all_selected_lst)
     return float(np.nanmean(combined_lst_values))
 
+
+@mcp.tool(description='''
+Calculate the maximum Land Surface Temperature (LST) in areas where NDVI is above or below a given threshold.
+
+Parameters:
+    red_path (str): Path to the red band image.
+    nir_path (str): Path to the near-infrared (NIR) band image. 
+    lst_path (str): Path to the land surface temperature (LST) image.
+    ndvi_threshold (float): Threshold value for NDVI.
+    mode (str): 'above' to select NDVI >= threshold, 'below' for NDVI < threshold. Default is 'above'.
+
+Returns:
+    float: Maximum LST value over the selected NDVI region. Returns np.nan if no valid data.
+''')
 def calculate_max_lst_by_ndvi(red_path, nir_path, lst_path, ndvi_threshold, mode='above'):
     """
     Calculate the maximum Land Surface Temperature (LST) in areas where NDVI is above or below a given threshold.
@@ -796,6 +963,23 @@ def calculate_max_lst_by_ndvi(red_path, nir_path, lst_path, ndvi_threshold, mode
 
         return float(max_lst)
 
+
+
+@mcp.tool(description='''
+Estimate Apparent Thermal Inertia (ATI) using the Thermal Inertia Method.
+
+This method calculates ATI as (1 - albedo) / (day_temp - night_temp),
+which serves as a proxy for land surface temperature stability over diurnal cycles.
+
+Parameters:
+    day_temp_path (str): File path to daytime brightness temperature GeoTIFF.
+    night_temp_path (str): File path to nighttime brightness temperature GeoTIFF.
+    albedo_path (str): File path to surface albedo GeoTIFF.
+    output_path (str): Relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+
+Returns:
+    str: Path to the exported ATI GeoTIFF.
+''')
 def ATI(
     day_temp_path: str,
     night_temp_path: str,
@@ -911,6 +1095,25 @@ def ATI(
     return f'Result saved at {out_path}'
 
 
+
+
+@mcp.tool(description="""
+Dual-Polarization Differential Method (DPDM) for microwave remote sensing parameter inversion.
+
+Supports soil moisture and vegetation index estimation with improved data handling and flexible parameters.
+
+Parameters:
+    pol1_path (str): File path for the first polarization band GeoTIFF (e.g., VV).
+    pol2_path (str): File path for the second polarization band GeoTIFF (e.g., VH).
+    parameter (str): Parameter to invert, options: "soil_moisture" or "vegetation_index".
+    output_path (str): relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+    a (float, optional): Linear coefficient for soil moisture model. Default is 0.3.
+    b (float, optional): Intercept for soil moisture model. Default is 0.1.
+    input_unit (str, optional): Unit of input data, either "dB" or "linear". Default is "dB".
+
+Returns:
+    str: Path to the exported parameter GeoTIFF.
+""")
 def dual_polarization_differential(
     pol1_path: str,
     pol2_path: str,
@@ -989,6 +1192,28 @@ def dual_polarization_differential(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+
+@mcp.tool(description="""
+Dual-frequency Differential Method (DDM) for parameter inversion using local raster data.
+
+Supports inversion of multiple parameters via empirical linear models:
+
+- Soil Moisture (SM): param = alpha*(band1 - band2) + beta
+- Vegetation Index (VI): param = alpha*(band1 - band2) + beta
+- Leaf Area Index (LAI): param = alpha*(band1 - band2) + beta
+
+Parameters:
+    band1_path (str): File path for frequency 1 polarization band GeoTIFF.
+    band2_path (str): File path for frequency 2 polarization band GeoTIFF.
+    parameter (str): Parameter to invert. Options: 'SM', 'VI', 'LAI'. Default is 'SM'.
+    alpha (float, optional): Slope coefficient to override default.
+    beta (float, optional): Intercept coefficient to override default.
+    output_path (str): relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+
+Returns:
+    str: Path to the saved combined output GeoTIFF (difference and parameter).
+""")
 def dual_frequency_diff(
     band1_path: str,
     band2_path: str,
@@ -1077,6 +1302,20 @@ def dual_frequency_diff(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+@mcp.tool(description="""
+Multi-frequency Brightness Temperature Method for parameter inversion using local raster data.
+
+Parameters:
+    bt_paths (list[str]): List of local file paths for brightness temperature GeoTIFF bands 
+                          (e.g., ["BT_10GHz.tif", "BT_19GHz.tif", "BT_37GHz.tif"]).
+    diff_pairs (list[list[int]]): List of index pairs from bt_paths for difference calculation (e.g., [[0,1],[1,2]]).
+    parameter (str): Parameter to invert. Options: 'SM', 'VWC', 'LAI'.
+    output_path (str): relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+
+Returns:
+    str: Path to the saved inverted parameter GeoTIFF.
+""")
 def multi_freq_bt(
     bt_paths: list[str],
     diff_pairs: list[list[int]],
@@ -1179,6 +1418,21 @@ def multi_freq_bt(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+
+@mcp.tool(description="""
+Chang algorithm for inversion of a single parameter using multi-frequency dual-polarized microwave brightness temperatures from local raster files.
+
+Parameters:
+    bt_paths (list[str]): List of local GeoTIFF file paths for brightness temperature bands
+                          (e.g., ["BT_10V.tif", "BT_10H.tif", "BT_19V.tif", "BT_19H.tif"]).
+    diff_pairs (list[list[int]]): List of index pairs for brightness temperature differences.
+    parameter (str): Parameter to invert (e.g., "SM", "VWC").
+    output_path (str): relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+
+Returns:
+    str: File path to saved GeoTIFF with inverted parameter band.
+""")
 def chang_single_param_inversion(
     bt_paths: list[str],
     diff_pairs: list[list[int]],
@@ -1268,6 +1522,29 @@ def chang_single_param_inversion(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+
+
+@mcp.tool(description="""
+Estimate Sea Ice Concentration using NASA Team Algorithm from local passive microwave brightness temperature GeoTIFF files.
+
+Parameters:
+    bt_paths (dict): Dictionary of local GeoTIFF file paths for required brightness temperature bands, e.g.,
+        {
+          "19V": "BT_19V.tif",
+          "19H": "BT_19H.tif",
+          "37V": "BT_37V.tif",
+          "37H": "BT_37H.tif"
+        }
+    output_path (str): relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+    nd_ice (float): ND value for ice reference. Default 50.0.
+    nd_water (float): ND value for water reference. Default 0.0.
+    s1_ice (float): S1 value for ice reference. Default 20.0.
+    s1_water (float): S1 value for water reference. Default 0.0.
+
+Returns:
+    str: Path to saved GeoTIFF with sea ice concentration band.
+""")
 def nasa_team_sea_ice_concentration(
     bt_paths: dict,
     output_path: str,
@@ -1351,6 +1628,30 @@ def nasa_team_sea_ice_concentration(
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+
+@mcp.tool(description="""
+Estimate Vegetation Water Content (VWC) or Soil Moisture (SM) using Dual-Polarization Ratio Method (PRM) from local passive microwave brightness temperature GeoTIFF files.
+
+The polarization ratio is computed as: (V - H) / (V + H), where V and H are brightness temperatures of vertical and horizontal polarizations.
+
+Empirical models:
+- VWC = a_vwc * PR + b_vwc
+- SM  = a_sm * PR + b_sm
+
+Parameters:
+    bt_paths (dict): Dictionary of local GeoTIFF file paths for vertical and horizontal polarization bands, e.g.
+        {
+          "V": "BT_V.tif",
+          "H": "BT_H.tif"
+        }
+    parameter (str): Parameter to invert, either "VWC" or "SM".
+    output_path (str): relative path for the output raster file, e.g. "question17/thermal_inertia_2022-01-16.tif"
+    coeffs (dict, optional): Empirical coefficients {"VWC": {"a":float, "b":float}, "SM": {...}}.
+
+Returns:
+    str: File path of the saved GeoTIFF containing the inverted parameter and PR band.
+""")
 def dual_polarization_ratio(
     bt_paths: dict,
     parameter: str,
@@ -1432,6 +1733,22 @@ def dual_polarization_ratio(
     except Exception as e:
         raise RuntimeError(f"Error processing dual polarization ratio parameter: {e}")
 
+
+@mcp.tool(description="""
+Calculate water turbidity in NTU (Nephelometric Turbidity Units) from red band raster file
+and save the result to a specified output path.
+
+Parameters:
+    input_red_path (str): Path to the Red band raster file.
+    output_path (str): relative path for the output raster file, e.g. "benchmark/data/question17/turbidity_2022-01-16.tif"
+    method (str): Calculation method - "linear" (a*Red+b), "power" (a*Red^n+b), or "log" (a*log(Red)+b).
+    a (float): Coefficient parameter, default 1.0.
+    b (float): Offset parameter, default 0.0.
+    n (float): Power parameter for power method, default 1.0.
+
+Returns:
+    str: Path to the output NTU raster file.
+""")
 def calculate_water_turbidity_ntu(
     input_red_path: str,
     output_path: str,
@@ -1504,3 +1821,7 @@ def calculate_water_turbidity_ntu(
         dst.write(ntu.astype(rasterio.float32), 1)  # Write the NTU band
 
     return f'Result saved at {TEMP_DIR / output_path}'
+
+
+if __name__ == "__main__":
+    mcp.run() 

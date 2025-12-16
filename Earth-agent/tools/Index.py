@@ -1,7 +1,11 @@
 import argparse
+
 from pathlib import Path
+from fastmcp import FastMCP
+
 from utils import read_image, read_image_uint8
 
+mcp = FastMCP()
 parser = argparse.ArgumentParser()
 parser.add_argument('--temp_dir', type=str)
 args, unknown = parser.parse_known_args()
@@ -60,6 +64,17 @@ def calculate_ndvi(input_nir_path, input_red_path, output_path):
     
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate NDVI from multiple pairs of NIR/Red raster files and save results.
+
+Parameters:
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    input_red_paths (list[str]): Paths to Red band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/ndvi_2022-01-16.tif") for each pair.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_ndvi`.
+""")
 def calculate_batch_ndvi(
     input_nir_paths: list[str],
     input_red_paths: list[str],
@@ -133,6 +148,17 @@ def calculate_ndwi(input_nir_path, input_swir_path, output_path):
     
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate NDWI from multiple pairs of NIR/SWIR raster files and save results.
+
+Parameters:
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    input_swir_paths (list[str]): Paths to Short-Wave Infrared (SWIR) band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/ndwi_2022-01-16.tif") for each pair.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_ndwi`.
+""")
 def calculate_batch_ndwi(
     input_nir_paths: list[str],
     input_swir_paths: list[str],
@@ -206,6 +232,17 @@ def calculate_ndbi(input_swir_path, input_nir_path, output_path):
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate NDBI from multiple pairs of SWIR/NIR raster files and save results.
+
+Parameters:
+    input_swir_paths (list[str]): Paths to Short-Wave Infrared (SWIR) band raster files.
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/ndbi_2022-01-16.tif") for each pair.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_ndbi`.
+""")
 def calculate_batch_ndbi(
     input_swir_paths: list[str],
     input_nir_paths: list[str],
@@ -286,6 +323,18 @@ def  calculate_evi(input_nir_path, input_red_path, input_blue_path, output_path,
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate EVI from multiple sets of NIR/Red/Blue raster files and save results.
+
+Parameters:
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    input_red_paths (list[str]): Paths to Red band raster files.
+    input_blue_paths (list[str]): Paths to Blue band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/evi_2022-01-16.tif") for each set.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_evi`.
+""")
 def calculate_batch_evi(
     input_nir_paths: list[str],
     input_red_paths: list[str],
@@ -370,7 +419,17 @@ def calculate_nbr(input_nir_path, input_swir_path, output_path):
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate NBR from multiple pairs of NIR/SWIR raster files and save results.
 
+Parameters:
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    input_swir_paths (list[str]): Paths to Short-Wave Infrared (SWIR) band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/nbr_2022-01-16.tif") for each pair.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_nbr`.
+""")
 def calculate_batch_nbr(
     input_nir_paths: list[str],
     input_swir_paths: list[str],
@@ -454,6 +513,19 @@ def calculate_fvc(input_nir_path, input_red_path, output_path, ndvi_min=0.1, ndv
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate FVC from multiple pairs of NIR/Red raster files and save results.
+
+Parameters:
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    input_red_paths (list[str]): Paths to Red band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/fvc_2022-01-16.tif") for each pair.
+    ndvi_min (float, optional): Minimum NDVI value for non-vegetated areas (default: 0.1).
+    ndvi_max (float, optional): Maximum NDVI value for fully vegetated areas (default: 0.9).
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_fvc`.
+""")
 def calculate_batch_fvc(
     input_nir_paths: list[str],
     input_red_paths: list[str],
@@ -543,6 +615,19 @@ def calculate_wri(input_green_path, input_red_path, input_nir_path, input_swir_p
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate WRI from multiple sets of Green/Red/NIR/SWIR raster files and save results.
+
+Parameters:
+    input_green_paths (list[str]): Paths to Green band raster files.
+    input_red_paths (list[str]): Paths to Red band raster files.
+    input_nir_paths (list[str]): Paths to Near-Infrared (NIR) band raster files.
+    input_swir_paths (list[str]): Paths to Short-Wave Infrared (SWIR) band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/wri_2022-01-16.tif") for each set.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_wri`.
+""")
 def calculate_batch_wri(
     input_green_paths: list[str],
     input_red_paths: list[str],
@@ -624,6 +709,17 @@ def calculate_ndti(input_red_path, input_green_path, output_path):
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate NDTI from multiple pairs of Red/Green raster files and save results.
+
+Parameters:
+    input_red_paths (list[str]): Paths to Red band raster files.
+    input_green_paths (list[str]): Paths to Green band raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/ndti_2022-01-16.tif") for each pair.
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_ndti`.
+""")
 def calculate_batch_ndti(
     input_red_paths: list[str],
     input_green_paths: list[str],
@@ -694,6 +790,17 @@ def calculate_frp(input_frp_path, output_path, fire_threshold=0):
 
     return f'Result save at {TEMP_DIR / output_path}'
 
+@mcp.tool(description="""
+Batch-calculate Fire Radiative Power (FRP) masks from multiple raster files and save results.
+
+Parameters:
+    input_frp_paths (list[str]): Paths to FRP raster files.
+    output_paths (list[str]): Relative output paths (e.g., "question17/frp_2022-01-16.tif") for each file.
+    fire_threshold (float, optional): Minimum FRP value to be considered as fire (default: 0).
+
+Returns:
+    list[str]: A list of result messages (one per output), as returned by `calculate_frp`.
+""")
 def calculate_batch_frp(
     input_frp_paths: list[str],
     output_paths: list[str],
@@ -810,6 +917,17 @@ def calculate_ndsi(input_green_path: str, input_swir_path: str, output_path: str
     return f'Result save at {TEMP_DIR / output_path}'
 
 
+@mcp.tool(description="""
+Calculate NDSI for multiple pairs of Green and SWIR band images.
+
+Parameters:
+    green_file_list (list[str]): List of paths to Green band raster files.
+    swir_file_list (list[str]): List of paths to SWIR band raster files.
+    output_path_list (list[str]): relative path for the output raster file, e.g. ["question17/ndsi_2022-01-16.tif", "question17/ndsi_2022-01-16.tif"]
+
+Returns:
+    list[str]: List of paths to the output NDSI raster files.
+""")
 def calculate_batch_ndsi(green_file_list: list[str], swir_file_list: list[str], output_path_list: list[str]) -> list[str]:
     """
     Calculate NDSI for multiple pairs of Green and SWIR band images.
@@ -833,6 +951,24 @@ def calculate_batch_ndsi(green_file_list: list[str], swir_file_list: list[str], 
     return results
 
 
+
+@mcp.tool(description="""
+Calculate the percentage of extreme snow and ice loss areas from a binary map.
+
+Parameters:
+    binary_map_path (str):
+        Path to the binary raster image where pixels with value 1.0 
+        represent extreme snow/ice loss areas.
+
+Returns:
+    float:
+        The percentage of extreme snow/ice loss pixels relative to all valid pixels 
+        (range: 0.0–1.0).
+
+Example:
+    >>> calc_extreme_snow_loss_percentage_from_binary_map("snow_loss_binary.tif")
+    0.27
+""")
 def calc_extreme_snow_loss_percentage_from_binary_map(binary_map_path: str) -> float:
     """
     Calculate the percentage of extreme snow and ice loss areas from a binary map.
@@ -875,6 +1011,17 @@ def calc_extreme_snow_loss_percentage_from_binary_map(binary_map_path: str) -> f
     return float(extreme_loss_percentage)
 
 
+@mcp.tool(description='''
+Compute TVDI (Temperature Vegetation Dryness Index) using NDVI and LST from local raster files.
+
+Parameters:
+    ndvi_path (str): Path to local NDVI GeoTIFF (e.g., MODIS NDVI scaled by 0.0001).
+    lst_path (str): Path to local LST GeoTIFF (e.g., MODIS LST scaled by 0.02).
+    output_path (str): relative path for the output raster file, e.g. "question17/tvdi_2022-01-16.tif"
+
+Returns:
+    str: Path to the exported TVDI GeoTIFF.
+''')
 def compute_tvdi(
     ndvi_path: str,
     lst_path: str,
@@ -989,3 +1136,7 @@ def compute_tvdi(
         dst.write(tvdi, 1)
 
     return f'Result saved at {TEMP_DIR / output_path}'
+
+
+if __name__ == "__main__":
+    mcp.run() 

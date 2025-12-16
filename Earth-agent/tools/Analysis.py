@@ -1,8 +1,12 @@
 import argparse
+
 from pathlib import Path
+from fastmcp import FastMCP
+from utils import read_image, read_image_uint8
 
+
+mcp = FastMCP()
 parser = argparse.ArgumentParser()
-
 parser.add_argument('--temp_dir', type=str)
 args, unknown = parser.parse_known_args()
 
@@ -10,6 +14,30 @@ TEMP_DIR = Path(args.temp_dir)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@mcp.tool(description='''
+Description
+
+Computes the linear trend (slope and intercept) of a time series by fitting a line of the form:
+
+y = a \\cdot x + b
+
+using the least squares method.
+
+Parameters
+    • y (list):
+The dependent variable — typically your time series data.
+    • x (list):
+The independent variable — usually time indices. If not provided, the function will use np.arange(len(y)) as a default.
+
+Returns
+    • slope (float):
+The coefficient a — represents the trend.
+    • > 0: upward trend
+    • < 0: downward trend
+    • ≈ 0: no trend
+    • intercept (float):
+The y-intercept b of the fitted line.
+''')
 def compute_linear_trend(y: list, x: list|None = None):
     '''
     Description
@@ -52,6 +80,24 @@ def compute_linear_trend(y: list, x: list|None = None):
     # return list(a), list(b)
 
 
+@mcp.tool(description='''
+Description:
+Perform the non-parametric Mann-Kendall trend test on a univariate time series. 
+The test evaluates whether there is a monotonic upward or downward trend 
+without requiring the data to conform to any particular distribution.
+
+Parameters:
+- x (list[float]): Input time series values (numeric). Missing values should be removed before calling.
+
+Returns:
+- trend (str): Type of detected trend. One of:
+    * "increasing" — statistically significant upward trend
+    * "decreasing" — statistically significant downward trend
+    * "no trend" — no statistically significant trend
+- p_value (float): Two-tailed p-value of the test.
+- z (float): Standard normal test statistic.
+- tau (float): Kendall’s Tau statistic (rank correlation, between -1 and 1).
+''')
 def mann_kendall_test(x: list):
     """
     Description:
@@ -125,6 +171,22 @@ def mann_kendall_test(x: list):
     return trend, float(p), float(z), float(tau)
 
 
+@mcp.tool(description='''
+Description:
+Compute Sen’s Slope estimator for a univariate time series. 
+Sen’s Slope is a robust non-parametric method for estimating 
+the median rate of change over time, often used with the 
+Mann-Kendall test to assess both trend and magnitude.
+
+Parameters:
+- x (list[float]): Input time series values (numeric). 
+                   Must contain at least two observations.
+
+Returns:
+- slope (float): Sen’s Slope estimate (the median of all pairwise slopes).
+- slopes (list[float]): List of all individual pairwise slopes, 
+                        useful for optional further analysis.
+''')
 def sens_slope(x: list):
     """
     Description:
@@ -169,6 +231,22 @@ def sens_slope(x: list):
 
 
 
+@mcp.tool(description='''
+Description:
+Apply Seasonal-Trend decomposition using LOESS (STL) to a univariate time series. 
+Decomposes the series into trend, seasonal, and residual components.
+
+Parameters:
+- x (list[float]): Input time series values (numeric).
+- period (int): Number of observations per cycle (e.g., 12 for monthly data with yearly seasonality).
+- robust (bool, optional): Whether to use a robust version of STL (less sensitive to outliers). Default = True.
+
+Returns:
+- result (dict): Dictionary with three keys:
+    * "trend" (list[float]): Estimated long-term trend component.
+    * "seasonal" (list[float]): Estimated seasonal component.
+    * "resid" (list[float]): Residual (remainder) component.
+''')
 def stl_decompose(
     x: list, 
     period: int, 
@@ -221,7 +299,23 @@ def stl_decompose(
     }
 
 
+@mcp.tool(description='''
+Description:
+Detect structural change points in a univariate time series using the 
+ruptures library with the PELT algorithm. A change point marks a location 
+where the statistical properties of the signal shift (e.g., mean or variance).
 
+Parameters:
+- signal (list[float]): Input 1D time series data.
+- model (str, optional): Cost model type for segmentation. 
+                         Options include "l1", "l2" (default; mean shift), "rbf", etc.
+- penalty (float, optional): Penalty value that controls sensitivity. 
+                             Higher penalty = fewer detected change points. Default = 10.
+
+Returns:
+- change_points (list[int]): Indices where change points are detected. 
+                             Includes the last index of the signal by default.
+''')
 def detect_change_points(signal, model="l2", penalty=10):
     """
     Description:
@@ -260,6 +354,20 @@ def detect_change_points(signal, model="l2", penalty=10):
     return [int(cp) for cp in change_points]
 
 
+@mcp.tool(description='''
+Description:
+Compute the Autocorrelation Function (ACF) for a univariate time series. 
+The ACF measures the correlation of the series with its own lags, which is 
+useful for detecting seasonality, persistence, and lag dependence.
+
+Parameters:
+- x (list[float]): Input time series data.
+- nlags (int, optional): Number of lags to compute. Default = 20.
+
+Returns:
+- acf (list[float]): List of autocorrelation values from lag 0 up to lag `nlags`. 
+                     Value at lag 0 is always 1.0.
+''')
 def autocorrelation_function(x: list, nlags: int = 20):
     """
     Description:
@@ -300,6 +408,21 @@ def autocorrelation_function(x: list, nlags: int = 20):
     return [float(val) for val in acf]
 
 
+@mcp.tool(description='''
+Description:
+Detect the dominant seasonality (period) in a univariate time series using the 
+Autocorrelation Function (ACF). The method searches for significant peaks in the 
+ACF beyond lag=1 to identify repeating cycles.
+
+Parameters:
+- values (list[float]): Input time series data.
+- min_acf (float, optional): Threshold for ACF value to consider a lag significant. Default = 0.3.
+
+Returns:
+- result (int | str): 
+    * Dominant period (lag) as an integer if a significant seasonal cycle is detected.
+    * "Data is not cyclical" if no significant seasonality is found.
+''')
 def detect_seasonality_acf(values: list, min_acf: float = 0.3):
     """
     Description:
@@ -356,7 +479,24 @@ def detect_seasonality_acf(values: list, min_acf: float = 0.3):
         return best_lag
 
 
+@mcp.tool(description='''
+Description:
+Compute the Getis-Ord Gi* statistic for local spatial autocorrelation on a raster image. 
+This method identifies statistically significant spatial clusters of high (hot spots) 
+or low (cold spots) values using a user-specified spatial weight kernel.
 
+Parameters:
+- image_path (str): Path to the input single-band raster image (GeoTIFF).
+- weight_matrix (list[list[float]]): 2D list representing the spatial weight kernel 
+                                     (e.g., 3x3 matrix for neighborhood influence).
+- output_path (str): Relative file path to save the Gi* result GeoTIFF 
+                     (e.g., "question17/cloud_mask_2022-01-16.tif").
+
+Returns:
+- str: Path to the saved GeoTIFF image containing computed Gi* statistics.
+       Output raster has the same dimensions as the input image, 
+       with float32 values representing local Gi* scores.
+''')
 def getis_ord_gi_star(image_path: str, weight_matrix: list, output_path: str) -> str:
     """
     Description:
@@ -451,7 +591,24 @@ def getis_ord_gi_star(image_path: str, weight_matrix: list, output_path: str) ->
 
 
 
+@mcp.tool(description='''
+Description:
+Analyze the main directional concentration of hotspots in a binary hotspot map. 
+The function counts the number of hotspot pixels (value=1) in each cardinal direction 
+relative to the map center, and returns the dominant direction.
 
+Parameters:
+- hotspot_map_path (str): Path to the binary hotspot map GeoTIFF. 
+                          Hotspot pixels must be encoded as value=1.
+
+Returns:
+- str: Main direction of hotspot concentration, one of:
+       * "north"
+       * "south"
+       * "east"
+       * "west"
+       * "no hotspots found" (if no hotspot pixels are present)
+''')
 def analyze_hotspot_direction(hotspot_map_path: str) -> str:
     """
     Description:
@@ -514,6 +671,29 @@ def analyze_hotspot_direction(hotspot_map_path: str) -> str:
     return max_direction
 
 
+@mcp.tool(description=
+    """
+    Count the number of upward spikes in a sequence of numerical values.
+
+    A spike is defined as a positive difference between consecutive valid
+    values greater than the given threshold.
+
+    Parameters:
+        values (list of float):
+            Input sequence of values (can include None or NaN).
+        spike_threshold (float):
+            Minimum positive change required to count as a spike.
+        verbose (bool):
+            If True, prints details for each detected spike.
+
+    Returns:
+        int:
+            Number of detected upward spikes.
+
+    Example:
+        >>> count_spikes_from_values([0.1, 0.15, 0.5, 0.55], spike_threshold=0.2)
+        1
+    """)
 def count_spikes_from_values(values, spike_threshold=0.1, verbose=True):
     """
     Count the number of upward spikes in a sequence of numerical values.
@@ -561,3 +741,7 @@ def count_spikes_from_values(values, spike_threshold=0.1, verbose=True):
         print(f"\nTotal number of spikes detected: {spike_count}")
 
     return spike_count
+
+
+if __name__ == "__main__":
+    mcp.run()

@@ -1,7 +1,11 @@
 import argparse
+
 from pathlib import Path
+from fastmcp import FastMCP
+
 from utils import read_image, read_image_uint8
 
+mcp = FastMCP()
 parser = argparse.ArgumentParser()
 parser.add_argument('--temp_dir', type=str)
 args, unknown = parser.parse_known_args()
@@ -9,6 +13,22 @@ args, unknown = parser.parse_known_args()
 TEMP_DIR = Path(args.temp_dir)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
+
+@mcp.tool(description='''
+Description:
+Compute the Coefficient of Variation (CV) for a dataset. 
+The CV is defined as the ratio of the standard deviation to the mean 
+and is commonly used as a normalized measure of dispersion.
+
+Parameters:
+- x (list[float]): Input data values.
+- ddof (int, optional): Delta Degrees of Freedom for standard deviation calculation. 
+                        * ddof = 0 → population std
+                        * ddof = 1 → sample std (default)
+
+Returns:
+- cv (float): Coefficient of Variation. Returns NaN if mean == 0.
+''')
 def coefficient_of_variation(x: list, ddof: int = 1):
     """
     Description:
@@ -43,6 +63,22 @@ def coefficient_of_variation(x: list, ddof: int = 1):
 
     return float(std / mean)
 
+
+@mcp.tool(description='''
+Description:
+Compute the skewness of a dataset, which measures the asymmetry of the probability distribution.
+
+Parameters:
+- x (list[float]): Input data values.
+- bias (bool, optional): If False, applies bias correction (Fisher-Pearson unbiased estimator).
+                         Default = True.
+
+Returns:
+- skew (float): Skewness of the dataset.
+    * Positive skew → long right tail
+    * Negative skew → long left tail
+    * Zero skew → symmetric distribution
+''')
 def skewness(x: list, bias: bool = True):
     """
     Description:
@@ -92,6 +128,23 @@ def skewness(x: list, bias: bool = True):
     return float(skew)
 
 
+@mcp.tool(description='''
+Description:
+Compute the kurtosis of a dataset, which measures the "tailedness" of the distribution.
+
+Parameters:
+- x (list[float]): Input data values.
+- bias (bool, optional): If False, applies bias correction (unbiased estimator). Default = True.
+- fisher (bool, optional): 
+    * If True, returns "excess kurtosis" (normal distribution → 0).
+    * If False, returns regular kurtosis (normal distribution → 3). Default = True.
+
+Returns:
+- kurt (float): Kurtosis of the dataset.
+    * Positive → heavy-tailed relative to normal distribution.
+    * Negative → light-tailed relative to normal distribution.
+    * Zero → same tailedness as normal distribution (if fisher=True).
+''')
 def kurtosis(x: list, bias: bool = True, fisher: bool = True):
     """
     Description:
@@ -174,6 +227,16 @@ def calc_single_image_mean(file_path: str, uint8: bool = False) -> float:
 
     return float(np.nanmean(flat))
 
+@mcp.tool(description='''
+Compute mean value of an batch of images.
+
+Args:
+    file_list (list): List of image file paths.
+    uint8 (bool): Whether to convert image to uint8 format.
+
+Returns:
+    mean (list): List of mean pixel values.
+''')
 def calc_batch_image_mean(file_list: list[str], uint8: bool = False) -> list[float]:
     """
     Compute mean value of an batch of images.
@@ -214,6 +277,17 @@ def calc_single_image_std(file_path: str, uint8: bool = False) -> float:
 
     return float(np.nanstd(flat, ddof=1))
 
+@mcp.tool(description='''
+Description:
+Compute the standard deviation (spread of pixel values) for a batch of images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- std (list[float]): List of standard deviation values, one for each input image.
+''')
 def calc_batch_image_std(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -254,6 +328,17 @@ def calc_single_image_median(file_path: str, uint8: bool = False) -> float:
 
     return float(np.nanmedian(flat))
 
+@mcp.tool(description='''
+Description:
+Compute the median pixel value for a batch of images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- median (list[float]): List of median pixel values, one for each input image.
+''')
 def calc_batch_image_median(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -293,6 +378,19 @@ def calc_single_image_min(file_path: str, uint8: bool = False) -> float:
     flat = np.where(np.isinf(flat), np.nan, flat)
 
     return float(np.nanmin(flat))
+
+
+@mcp.tool(description='''
+Description:
+Compute the minimum pixel value for a batch of images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- min (list[float]): List of minimum pixel values, one for each input image.
+''')
 
 def calc_batch_image_min(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
@@ -334,6 +432,17 @@ def calc_single_image_max(file_path: str, uint8: bool = False) -> float:
 
     return float(np.nanmax(flat))
 
+@mcp.tool(description='''
+Description:
+Compute the maximum pixel value for a batch of images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- max (list[float]): List of maximum pixel values, one for each input image.
+''')
 def calc_batch_image_max(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -375,6 +484,22 @@ def calc_single_image_skewness(file_path: str, uint8: bool = False) -> float:
 
     return float(skew(flat, bias=False))
 
+
+@mcp.tool(description='''
+Description:
+Compute the skewness of pixel value distributions for a batch of images. 
+Skewness quantifies the asymmetry of the distribution:
+- Positive skew → longer right tail
+- Negative skew → longer left tail
+- Zero skew → symmetric distribution
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- skewness (list[float]): List of skewness values, one for each input image.
+''')
 def calc_batch_image_skewness(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -429,6 +554,21 @@ def calc_single_image_kurtosis(file_path: str, uint8: bool = False) -> float:
     return float(kurtosis(flat_clean, fisher=False))
 
 
+@mcp.tool(description='''
+Description:
+Compute the kurtosis of pixel value distributions for a batch of images. 
+Kurtosis measures the "tailedness" of the distribution relative to a normal distribution.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- kurtosis (list[float]): List of kurtosis values, one for each input image.
+    * Normal distribution → kurtosis ≈ 3
+    * Higher values → heavier tails
+    * Lower values → lighter tails
+''')
 def calc_batch_image_kurtosis(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -474,6 +614,18 @@ def calc_single_image_sum(file_path: str, uint8: bool = False) -> float:
 
     return float(np.nansum(flat))
 
+
+@mcp.tool(description='''
+Description:
+Compute the sum of pixel values for a batch of images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- sum (list[float]): List of pixel sum values, one for each input image.
+''')
 def calc_batch_image_sum(file_list: list[str], uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -525,6 +677,19 @@ def calc_single_image_hotspot_percentage(file_path: str, threshold: float, uint8
     
     return float(hotspot_percentage)
 
+
+@mcp.tool(description='''
+Description:
+Compute the hotspot percentage (fraction of pixels above a threshold) for a batch of images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- threshold (float): Threshold value for hotspot detection. Pixels with values greater than this threshold are counted as hotspots.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- percentage (list[float]): List of hotspot area percentages (0.0–1.0), one for each input image.
+''')
 def calc_batch_image_hotspot_percentage(file_list: list[str], threshold: float, uint8: bool = False) -> list[float]:
     '''
     Description:
@@ -612,6 +777,22 @@ def calc_single_image_hotspot_tif(file_path: str, threshold: float, output_path:
     
     return f'Result save at {TEMP_DIR / output_path}'
 
+
+@mcp.tool(description='''
+Description:
+Create binary hotspot maps for a batch of images, where pixels below a specified 
+threshold are set to 1 (hotspot) and others set to 0. The output is saved as 
+GeoTIFF files, preserving georeference metadata from the input images.
+
+Parameters:
+- file_list (list[str]): List of input image file paths.
+- threshold (float): Threshold value for hotspot detection. Pixels below this threshold are marked as hotspots.
+- output_path_list (list[str]): List of output file paths for the generated GeoTIFF hotspot maps.
+- uint8 (bool, optional): Whether to convert images to uint8 format before computation. Default = False.
+
+Returns:
+- list[str]: Paths to the saved GeoTIFF images containing the binary hotspot maps.
+''')
 def calc_batch_image_hotspot_tif(file_list: list[str], threshold: float, output_path_list: list[str], uint8: bool = False) -> list[str]:
     '''
     Description:
@@ -630,6 +811,18 @@ def calc_batch_image_hotspot_tif(file_list: list[str], threshold: float, output_
     '''
     return [calc_single_image_hotspot_tif(file_path, threshold, output_path, uint8) for file_path, output_path in zip(file_list, output_path_list)]
 
+
+@mcp.tool(description='''
+Description:
+Compute the absolute difference between two numbers.
+
+Parameters:
+- a (float): The first number.
+- b (float): The second number.
+
+Returns:
+- diff (float): The absolute difference |a - b|.
+''')
 def difference(a: float, b: float):
     '''
     Description:
@@ -646,6 +839,18 @@ def difference(a: float, b: float):
     diff = a - b
     return float(abs(diff))
 
+
+@mcp.tool(description='''
+Description:
+Perform division between two numbers.
+
+Parameters:
+- a (float): The divisor (denominator).
+- b (float): The dividend (numerator).
+
+Returns:
+- result (float): The result of b ÷ a. Returns +inf if a = 0.
+''')
 def division(a: float, b: float):
     '''
     Description:
@@ -664,6 +869,19 @@ def division(a: float, b: float):
     result = b / a
     return float(result)
 
+
+@mcp.tool(description='''
+Description:
+Calculate the percentage change between two numbers, useful for comparing relative growth or decline.
+
+Parameters:
+- a (float): The original value (denominator).
+- b (float): The new value (numerator).
+
+Returns:
+- percent (float): The percentage change, computed as ((b - a) / a) * 100.
+                   Positive values indicate increase, negative values indicate decrease.
+''')
 def percentage_change(a: float, b: float):
     '''
     Description:
@@ -679,7 +897,19 @@ def percentage_change(a: float, b: float):
     '''
     
     percent = (b - a) / a * 100
-    return float(percent)
+    return float(percent) 
+
+
+@mcp.tool(description='''
+Description:
+Convert temperature from Kelvin to Celsius.
+
+Parameters:
+- kelvin (float): Temperature in Kelvin.
+
+Returns:
+- celsius (float): Temperature in Celsius, computed as (Kelvin - 273.15).
+''')
 def kelvin_to_celsius(kelvin: float):
     '''
     Description:
@@ -695,6 +925,26 @@ def kelvin_to_celsius(kelvin: float):
     celsius = kelvin - 273.15
     return celsius
 
+
+@mcp.tool(description="""
+    Description:
+        Convert temperature from Celsius to Kelvin.
+
+    Parameters:
+        celsius (float):
+            Temperature in Celsius.
+
+    Returns:
+        kelvin (float):
+            Temperature in Kelvin, computed as:
+                Kelvin = Celsius + 273.15
+
+    Example:
+        >>> celsius_to_kelvin(0)
+        273.15
+        >>> celsius_to_kelvin(26.85)
+        300.0
+    """)
 def celsius_to_kelvin(celsius: float):
     """
     Description:
@@ -719,6 +969,19 @@ def celsius_to_kelvin(celsius: float):
     kelvin = celsius + 273.15
     return kelvin
 
+
+@mcp.tool(description='''
+Description:
+Find the maximum value in a list and return both the maximum value and its index.
+
+Parameters:
+- x (list[float]): Input data list.
+
+Returns:
+- result (tuple[float, int]): A tuple containing:
+    * max_value (float): The maximum value in the list.
+    * max_index (int): The index of the maximum value.
+''')
 def max_value_and_index(x: list):
     '''
     Description:
@@ -740,6 +1003,18 @@ def max_value_and_index(x: list):
     
     return (float(max_value), int(max_index))
 
+@mcp.tool(description='''
+Description:
+Find the minimum value in a list and return both the minimum value and its index.
+
+Parameters:
+- x (list[float]): Input data list.
+
+Returns:
+- result (tuple[float, int]): A tuple containing:
+    * min_value (float): The minimum value in the list.
+    * min_index (int): The index of the minimum value.
+''')
 def min_value_and_index(x: list):
     '''
     Description:
@@ -759,8 +1034,30 @@ def min_value_and_index(x: list):
     min_index = np.argmin(x)
     min_value = x[min_index]
     
-    return (float(min_value), int(min_index))
+    return (float(min_value), int(min_index)) 
 
+
+
+@mcp.tool(description="""
+    Description:
+        Multiply two numbers and return their product.
+
+    Parameters:
+        a (float or int):
+            First number.
+        b (float or int):
+            Second number.
+
+    Returns:
+        result (float or int):
+            The product of a and b.
+
+    Example:
+        >>> multiply(3, 4)
+        12
+        >>> multiply(2.5, 4)
+        10.0
+    """)
 def multiply(a, b):
     """
     Description:
@@ -784,6 +1081,26 @@ def multiply(a, b):
     """
     return a * b
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Return the ceiling (rounded up integer) of a given number.
+
+    Parameters:
+        n (float):
+            A numeric value.
+
+    Returns:
+        result (int):
+            The smallest integer greater than or equal to n.
+
+    Example:
+        >>> ceil_number(4.2)
+        5
+        >>> ceil_number(-3.7)
+        -3
+    """)
 def ceil_number(n: float):
     """
     Description:
@@ -806,6 +1123,26 @@ def ceil_number(n: float):
     import math
     return math.ceil(n)
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Retrieve elements from a list using a list or tuple of indices.
+
+    Parameters:
+        input_list (list):
+            The source list from which elements will be extracted.
+        indexes (list[int] or tuple[int]):
+            A sequence of indices specifying the positions of elements to retrieve.
+
+    Returns:
+        result (list):
+            A list of elements corresponding to the provided indices.
+
+    Example:
+        >>> get_list_object_via_indexes(['a', 'b', 'c', 'd'], [1, 3])
+        ['b', 'd']
+    """)
 def get_list_object_via_indexes(input_list, indexes):
     """
     Description:
@@ -827,6 +1164,24 @@ def get_list_object_via_indexes(input_list, indexes):
     """
     return [input_list[index] for index in indexes]
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Compute the arithmetic mean (average) of a dataset.
+
+    Parameters:
+        x (list[float]):
+            Input data array.
+
+    Returns:
+        mean_value (float):
+            The arithmetic mean of the input values.
+
+    Example:
+        >>> mean([1, 2, 3, 4, 5])
+        3.0
+    """)
 def mean(x: list):
     """
     Description:
@@ -848,6 +1203,34 @@ def mean(x: list):
     x = np.asarray(x)    
     return float(np.mean(x))
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Calculate the average percentage of pixels relative to a given threshold for
+        one or more images and a specified band.
+
+    Parameters:
+        image_paths (str or list[str]):
+            Path or list of image file paths.
+        threshold (float, optional):
+            Threshold value. Default = 0.75.
+        mode (str, optional):
+            Comparison mode: 'above' (>), 'below' (<), 'equal' (==),
+            'above_equal' (>=), 'below_equal' (<=). Default = 'above'.
+        band_index (int, optional):
+            Band index to use (0-based). Default = 0 (first band).
+
+    Returns:
+        percentage (float):
+            Average percentage of pixels matching the threshold condition across all images.
+
+    Example:
+        >>> calculate_threshold_ratio("image1.tif", threshold=0.5, mode='above')
+        42.37
+        >>> calculate_threshold_ratio(["img1.tif", "img2.tif"], threshold=0.8, mode='below', band_index=1)
+        33.12
+    """)
 def calculate_threshold_ratio(image_paths: str | list[str], threshold: float = 0.75, mode: str = 'above', band_index: int = 0) -> float:
     """
     Description:
@@ -939,6 +1322,26 @@ def calc_single_image_fire_pixels(file_path: str, fire_threshold: float = 0) -> 
     
     return int(fire_pixels)
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Compute the number of fire pixels (FRP > threshold) for a batch of images.
+
+    Parameters:
+        file_list (list[str]):
+            Paths to input images.
+        fire_threshold (float, optional):
+            Minimum FRP value to be considered as fire. Default = 0.
+
+    Returns:
+        fire_pixels (list[int]):
+            A list of fire pixel counts, one per input image.
+
+    Example:
+        >>> calc_batch_fire_pixels(["img1.tif", "img2.tif"], fire_threshold=50)
+        [123, 89]
+    """)
 def calc_batch_fire_pixels(file_list: list[str], fire_threshold: float = 0) -> list[int]:
     """
     Description:
@@ -960,6 +1363,28 @@ def calc_batch_fire_pixels(file_list: list[str], fire_threshold: float = 0) -> l
     """
     return [calc_single_image_fire_pixels(file_path, fire_threshold) for file_path in file_list]
 
+@mcp.tool(description=
+    """
+    Description:
+        Create a binary map highlighting areas where fire increase exceeds a specified threshold.
+
+    Parameters:
+        change_image_path (str):
+            Path to the fire change image.
+        output_path (str):
+            Relative path for the output raster file 
+            (e.g., "question17/hotspot_2022-01-16.tif").
+        threshold (float, optional):
+            Threshold value in MW. Default = 20.0.
+
+    Returns:
+        result (str):
+            Path to the saved GeoTIFF fire increase map.
+
+    Example:
+        >>> create_fire_increase_map("fire_change.tif", "output/fire_increase.tif", threshold=25.0)
+        'Result save at /tmp/output/fire_increase.tif'
+    """)
 def create_fire_increase_map(change_image_path: str, output_path: str, threshold: float = 20.0) -> str:
     """
     Description:
@@ -1001,6 +1426,33 @@ def create_fire_increase_map(change_image_path: str, output_path: str, threshold
     
     return f'Result save at {TEMP_DIR / output_path}'
 
+
+
+@mcp.tool(description="""
+    Description:
+        Identify fire-prone areas from a hotspot map based on a given percentile threshold.
+
+    Parameters:
+        file_path (str):
+            Path to the input hotspot map file.
+        output_path (str):
+            Relative path for the output raster file 
+            (e.g., "question17/hotspot_2022-01-16.tif").
+        threshold_percentile (float, optional):
+            Percentile threshold for identifying fire-prone areas. Default = 75.
+        uint8 (bool, optional):
+            Whether to use uint8 format when reading the input. Default = False.
+
+    Returns:
+        result (tuple[str, float]):
+            A tuple containing:
+              - Path to the saved GeoTIFF file with fire-prone areas.
+              - Threshold value used for classification.
+
+    Example:
+        >>> identify_fire_prone_areas("hotspot_map.tif", "output/fire_prone.tif", 80)
+        ('Result save at /tmp/output/fire_prone.tif', 123.45)
+    """)
 def identify_fire_prone_areas(file_path: str, output_path: str, threshold_percentile: float = 75, uint8: bool = False) -> tuple[str, float]:
     """
     Description:
@@ -1064,6 +1516,29 @@ def identify_fire_prone_areas(file_path: str, output_path: str, threshold_percen
     
     return f'Result save at {TEMP_DIR / output_path}', float(threshold_value)
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Calculate the N-th percentile value of pixel values in a raster image,
+        and return it as a native Python type matching the image's data type.
+
+    Parameters:
+        image_path (str):
+            Path to the input raster (.tif) file.
+        percentile (int or float):
+            Percentile to calculate (range 1–100).
+
+    Returns:
+        value (int or float):
+            The pixel value corresponding to the specified percentile,
+            cast to the appropriate native Python type (int for integer rasters,
+            float for floating-point rasters).
+
+    Example:
+        >>> get_percentile_value_from_image("fire_map.tif", 90)
+        235
+    """)
 def get_percentile_value_from_image(image_path, percentile):
     """
     Description:
@@ -1115,6 +1590,34 @@ def get_percentile_value_from_image(image_path, percentile):
     else:
         raise TypeError(f"Unsupported raster data type: {dtype}")
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Calculate the mean of pixel-wise division between two images 
+        or between two bands of the same image.
+
+    Parameters:
+        image_path1 (str):
+            Path to the first image (or the only image if comparing two bands).
+        image_path2 (str, optional):
+            Path to the second image. If None, band1 and band2 of image_path1 will be used.
+        band1 (int, optional):
+            Band index for numerator when using a multi-band image. Default = 1.
+        band2 (int, optional):
+            Band index for denominator when using a multi-band image. Default = 2.
+
+    Returns:
+        result (float):
+            The mean of the valid pixel-wise division results.
+
+    Example:
+        >>> image_division_mean("multiband_image.tif", band1=3, band2=2)
+        1.245
+
+        >>> image_division_mean("image1.tif", "image2.tif")
+        0.876
+    """)
 def image_division_mean(image_path1, image_path2=None, band1=1, band2=2):
     """
     Description:
@@ -1160,6 +1663,33 @@ def image_division_mean(image_path1, image_path2=None, band1=1, band2=2):
 
     return float(np.nanmean(ratio))
 
+
+
+@mcp.tool(description=
+    """
+    Description:
+        Calculate the percentage of pixels that simultaneously satisfy 
+        threshold conditions in two raster images.
+
+    Parameters:
+        path1 (str):
+            Path to the first raster image (e.g., NDVI).
+        threshold1 (float):
+            Threshold value for the first image (e.g., NDVI > 0.3).
+        path2 (str):
+            Path to the second raster image (e.g., TVDI).
+        threshold2 (float):
+            Threshold value for the second image (e.g., TVDI > 0.7).
+
+    Returns:
+        percentage (float):
+            Percentage of pixels that satisfy both conditions 
+            over the total valid pixels.
+
+    Example:
+        >>> calculate_intersection_percentage("ndvi.tif", 0.3, "tvdi.tif", 0.7)
+        12.54
+    """)
 def calculate_intersection_percentage(path1, threshold1, path2, threshold2):
     """
     Description:
@@ -1223,6 +1753,26 @@ def calculate_intersection_percentage(path1, threshold1, path2, threshold2):
     percentage = (intersection_pixels / total_valid_pixels) * 100
     return percentage
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Compute the average of mean pixel values across a batch of images.
+
+    Parameters:
+        file_list (list[str]):
+            List of image file paths.
+        uint8 (bool, optional):
+            Whether to convert images to uint8 format (0–255). Default = False.
+
+    Returns:
+        mean_of_means (float):
+            The average of the mean pixel values across all images.
+
+    Example:
+        >>> calc_batch_image_mean_mean(["img1.tif", "img2.tif"])
+        105.67
+    """)
 def calc_batch_image_mean_mean(file_list: list[str], uint8: bool = False) -> float:
     """
     Description:
@@ -1247,6 +1797,26 @@ def calc_batch_image_mean_mean(file_list: list[str], uint8: bool = False) -> flo
     return float(np.mean(means))
 
 
+@mcp.tool(description=
+    """
+    Description:
+        Compute the mean pixel values of a batch of images and return the maximum mean.
+
+    Parameters:
+        file_list (list[str]):
+            Paths to input images.
+        uint8 (bool, optional):
+            Whether to treat image as uint8 (0–255 normalization). Default = False.
+
+    Returns:
+        max_mean (float):
+            The maximum mean pixel value among all images.
+
+    Example:
+        >>> calc_batch_image_mean_max(["img1.tif", "img2.tif"])
+        145.32
+    """
+)
 def calc_batch_image_mean_max(file_list: list[str], uint8: bool = False) -> float:
     """
     Description:
@@ -1270,6 +1840,30 @@ def calc_batch_image_mean_max(file_list: list[str], uint8: bool = False) -> floa
     means = [float(calc_single_image_mean(file_path, uint8)) for file_path in file_list]
     return max(means)
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Compute the batch-wise statistics across multiple images, including:
+        - Mean of mean values
+        - Maximum of maximum values
+        - Minimum of minimum values
+
+    Parameters:
+        file_list (list[str]):
+            List of image file paths.
+        uint8 (bool, optional):
+            Whether to convert the data to uint8 range (0–255). Default = False.
+
+    Returns:
+        result (tuple[float, float, float]):
+            A tuple containing:
+            (mean of means, max of maxs, min of mins)
+
+    Example:
+        >>> calc_batch_image_mean_max_min(["img1.tif", "img2.tif"])
+        (110.5, 243.0, 5.0)
+    """)
 def calc_batch_image_mean_max_min(file_list: list[str], uint8: bool = False) -> tuple[float, float, float]:
     """
     Description:
@@ -1313,6 +1907,38 @@ def calc_batch_image_mean_max_min(file_list: list[str], uint8: bool = False) -> 
 
     return float(np.mean(means)), float(np.max(maxs)), float(np.min(mins))
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Calculate the percentage or count of images whose mean pixel values 
+        (in a specified band) are above or below a given threshold.
+
+    Parameters:
+        file_list (list[str]):
+            List of image file paths.
+        threshold (float):
+            Threshold value for comparison.
+        above (bool, optional):
+            If True, count images with mean > threshold; if False, mean < threshold.
+            Default = True.
+        uint8 (bool, optional):
+            If True, rescale image data to 0–255 range. Default = False.
+        band_index (int, optional):
+            Index of the band to read (0-based). Default = 0.
+        return_type (str, optional):
+            - "ratio": return percentage (float, 0–100). 
+            - "count": return number of images (int). 
+            Default = "ratio".
+
+    Returns:
+        float | int:
+            Percentage (0–100) or count of images satisfying the condition.
+
+    Example:
+        >>> calc_batch_image_mean_threshold(["img1.tif", "img2.tif"], threshold=100, above=True)
+        50.0
+    """)
 def calc_batch_image_mean_threshold(
     file_list: list[str],
     threshold: float,
@@ -1396,6 +2022,32 @@ def calc_batch_image_mean_threshold(
     else:
         raise ValueError("return_type must be 'ratio' or 'count'")
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Calculate the percentage of pixels that simultaneously satisfy multiple band threshold conditions.
+
+    Parameters:
+        image_path (str):
+            Path to the multi-band image file.
+        band_conditions (list[tuple[int, float, str]]):
+            A list of conditions in the form (band_index, threshold_value, compare_type):
+                - band_index (int): Zero-based band index.
+                - threshold_value (float): Threshold to apply.
+                - compare_type (str): "above" or "below".
+
+    Returns:
+        float:
+            Percentage of pixels satisfying all conditions (intersection).
+
+    Example:
+        >>> calculate_multi_band_threshold_ratio(
+        ...     "multi_band_image.tif",
+        ...     [(0, 0.3, "above"), (1, 0.7, "below")]
+        ... )
+        42.5
+    """)
 def calculate_multi_band_threshold_ratio(
     image_path: str,
     band_conditions: list
@@ -1456,6 +2108,32 @@ def calculate_multi_band_threshold_ratio(
     else:
         return (satisfying_pixels / total_valid_pixels) * 100
 
+
+@mcp.tool(description=
+    """
+    Description:
+        Count the number of pixels that simultaneously satisfy multiple band threshold conditions.
+
+    Parameters:
+        image_path (str):
+            Path to the multi-band image file.
+        band_conditions (list[tuple[int, float, str]]):
+            A list of conditions in the form (band_index, threshold_value, compare_type):
+                - band_index (int): Zero-based band index.
+                - threshold_value (float): Threshold to apply.
+                - compare_type (str): "above" or "below".
+
+    Returns:
+        int:
+            Number of pixels satisfying all threshold conditions (intersection).
+
+    Example:
+        >>> count_pixels_satisfying_conditions(
+        ...     "multi_band_image.tif",
+        ...     [(0, 0.3, "above"), (1, 0.7, "below")]
+        ... )
+        1250
+    """)
 def count_pixels_satisfying_conditions(
     image_path: str,
     band_conditions: list
@@ -1513,6 +2191,39 @@ def count_pixels_satisfying_conditions(
 
     return int(np.sum(combined_mask))
 
+
+@mcp.tool(description=
+    """
+    Count how many images have a percentage of pixels above or below a threshold 
+    that exceeds a specified ratio.
+
+    Parameters:
+        image_paths (str or list):
+            Path(s) to image file(s).
+        value_threshold (float):
+            Pixel value threshold (e.g., NDVI > 0.7).
+        ratio_threshold (float):
+            Percentage threshold for comparison (e.g., 20.0 means 20%).
+        mode (str):
+            - 'above': pixels > value_threshold
+            - 'below': pixels < value_threshold
+            Default is 'above'.
+        verbose (bool):
+            If True, prints detailed ratio results per image.
+
+    Returns:
+        int:
+            Number of images whose pixel ratio exceeds the ratio_threshold.
+
+    Example:
+        >>> count_images_exceeding_threshold_ratio(
+        ...     ["ndvi_1.tif", "ndvi_2.tif"],
+        ...     value_threshold=0.3,
+        ...     ratio_threshold=15.0,
+        ...     mode="above"
+        ... )
+        1
+    """)
 def count_images_exceeding_threshold_ratio(
     image_paths: str | list[str],
     value_threshold: float = 0.7,
@@ -1593,6 +2304,40 @@ def count_images_exceeding_threshold_ratio(
 
     return count_exceeding
 
+
+@mcp.tool(description=
+    """
+    Calculate the average percentage of pixels exceeding a value threshold,
+    considering only images where the ratio is greater than a specified ratio threshold.
+
+    Parameters:
+        image_paths (str or list):
+            Path(s) to image file(s).
+        value_threshold (float):
+            Pixel value threshold (e.g., NDVI > 0.7).
+        ratio_threshold (float):
+            Minimum percentage threshold for inclusion (e.g., 20.0 means 20%).
+        mode (str):
+            - 'above': pixels > value_threshold
+            - 'below': pixels < value_threshold
+            Default is 'above'.
+        verbose (bool):
+            If True, prints detailed ratio results per image.
+
+    Returns:
+        float:
+            Average percentage of qualifying images.
+            Returns 0.0 if no image meets the criteria.
+
+    Example:
+        >>> average_ratio_exceeding_threshold(
+        ...     ["ndvi_1.tif", "ndvi_2.tif"],
+        ...     value_threshold=0.3,
+        ...     ratio_threshold=10.0,
+        ...     mode="above"
+        ... )
+        18.5
+    """)
 def average_ratio_exceeding_threshold(
     image_paths: str | list[str],
     value_threshold: float = 0.7,
@@ -1684,6 +2429,36 @@ def average_ratio_exceeding_threshold(
 
     return avg
 
+
+@mcp.tool(description=
+    """
+    Count how many images have a mean pixel value above or below
+    a multiple of the overall mean pixel value across all images.
+
+    Parameters:
+        image_paths (str or list):
+            Path(s) to image file(s).
+        mean_multiplier (float):
+            Multiplier applied to the overall mean (e.g., 1.1 means 110%).
+        mode (str):
+            - 'above': count images with mean > mean_multiplier × overall_mean
+            - 'below': count images with mean < mean_multiplier × overall_mean
+            Default is 'above'.
+        verbose (bool):
+            If True, prints detailed mean and threshold comparisons per image.
+
+    Returns:
+        int:
+            Number of images satisfying the condition.
+
+    Example:
+        >>> count_images_exceeding_mean_multiplier(
+        ...     ["img1.tif", "img2.tif", "img3.tif"],
+        ...     mean_multiplier=0.9,
+        ...     mode="below"
+        ... )
+        2
+    """)
 def count_images_exceeding_mean_multiplier(
     image_paths: str | list[str],
     mean_multiplier: float = 1.1,
@@ -1768,6 +2543,40 @@ def count_images_exceeding_mean_multiplier(
 
     return count
 
+
+
+@mcp.tool(description=
+    """
+    Calculate the mean value of a target band over pixels where a condition band
+    satisfies a threshold.
+
+    Parameters:
+        image_path (str):
+            Path to the multi-band raster image.
+        condition_band_index (int):
+            Zero-based index of the band used for thresholding.
+        condition_threshold (float):
+            Threshold value to apply on the condition band.
+        condition_mode (str, default='above'):
+            - 'above': select pixels where condition_band >= threshold
+            - 'below': select pixels where condition_band < threshold
+        target_band_index (int, default=0):
+            Zero-based index of the band for which the mean is calculated.
+
+    Returns:
+        float:
+            Mean value of the target band over selected pixels.
+
+    Example:
+        >>> calculate_band_mean_by_condition(
+        ...     "multiband_image.tif",
+        ...     condition_band_index=1,
+        ...     condition_threshold=0.3,
+        ...     condition_mode="above",
+        ...     target_band_index=2
+        ... )
+        0.5471
+    """)
 def calculate_band_mean_by_condition(
     image_path: str,
     condition_band_index: int,
@@ -1830,6 +2639,21 @@ def calculate_band_mean_by_condition(
 
     return float(mean_value)
 
+
+@mcp.tool(description=
+    """
+    Calculate the mean value of corresponding raster pixels in path2 
+    where the raster values in path1 exceed the given threshold.
+
+    Parameters:
+        path1 (Path or List[Path]): Path(s) to the first set of raster files (e.g., LST).
+        path2 (Path or List[Path]): Path(s) to the second set of raster files (e.g., TVDI).
+        threshold (float): Threshold for values in path1 (e.g., LST in Kelvin).
+
+    Returns:
+        float: Mean value of path2 pixels that meet the threshold condition in path1.
+               Returns np.nan if no valid data is found.
+    """)
 def calc_threshold_value_mean(
     path1: str | list[str],
     path2: str | list[str],
@@ -1892,6 +2716,18 @@ def calc_threshold_value_mean(
 
     return float(np.mean(all_vals))
 
+
+@mcp.tool(description="""
+Calculate average of multiple tif files and save result to same directory.
+
+Parameters:
+    file_list (list[str]): List of tif file paths.
+    output_filename (str): Output filename, default "avg_result.tif".
+    uint8 (bool): Convert to uint8 format, default False.
+
+Returns:
+    output_path (str): Full path of output file.
+""")
 def calculate_tif_average(file_list: list[str], output_path: str, uint8: bool = False) -> str:
     """
     Calculate average of multiple tif files and save result to same directory.
@@ -1985,6 +2821,20 @@ def calculate_tif_average(file_list: list[str], output_path: str, uint8: bool = 
     out_ds = None
     return f'Result save at {output_path}'
 
+
+
+@mcp.tool(description="""
+Calculate difference between two tif files (image_b - image_a) and save result.
+
+Parameters:
+    image_a_path (str): Path to first image (will be subtracted from).
+    image_b_path (str): Path to second image (will subtract from).
+    output_path (str): relative path for the output raster file, e.g. "question17/difference_result.tif"
+    uint8 (bool): Convert to uint8 format, default False.
+
+Returns:
+    output_path (str): Full path of output file.
+""")
 def calculate_tif_difference(image_a_path: str, image_b_path: str, output_path: str, uint8: bool = False) -> str:
     """
     Calculate difference between two tif files (image_b - image_a) and save result.
@@ -2090,6 +2940,18 @@ def calculate_tif_difference(image_a_path: str, image_b_path: str, output_path: 
     return f"Result save at {TEMP_DIR / output_path}"
 
 
+
+@mcp.tool(description="""
+Subtract two images and save result.
+
+Parameters:
+    img1_path (str): Path to first image.
+    img2_path (str): Path to second image.
+    output_path (str): relative path for the output raster file, e.g. "question17/difference_result.tif"
+
+Returns:
+    str: Path to output file.
+""")
 def subtract(img1_path: str, img2_path: str, output_path: str) -> str:
     """
     Subtract two images and save result.
@@ -2123,6 +2985,17 @@ def subtract(img1_path: str, img2_path: str, output_path: str) -> str:
     
     return f'Result save at {TEMP_DIR / output_path}'
 
+
+@mcp.tool(description="""
+Description:
+This function calculates the area of non-zero pixels in the input image and returns the result.
+
+Parameters:
+    input_image_path (str): Path to the input image file (TIFF, PNG, JPG, etc.).
+    gsd (float): Ground sample distance in meters per pixel, if None, the function will return the number of non-zero pixels.
+Returns:
+    area (int): The area of non-zero pixels in the input image.
+""")
 def calculate_area(input_image_path, gsd):
     '''
     Description:
@@ -2143,7 +3016,7 @@ def calculate_area(input_image_path, gsd):
 
 
 
-
+@mcp.tool()
 def grayscale_to_colormap(image_path: str, save_name: str, cmap_name: str = 'viridis', preserve_geo: bool = False):
     """
     Apply a colormap to a grayscale image and save as a color image.
@@ -2204,6 +3077,16 @@ def grayscale_to_colormap(image_path: str, save_name: str, cmap_name: str = 'vir
         cv2.imwrite(save_path, bgr_img)
     return f'Result save at {save_path}'
 
+
+@mcp.tool(description="""
+Returns a list of files in the specified directory.
+
+Parameters:
+    dir_path (str): Path to the directory.
+
+Returns:
+    list: List of file names in the directory.
+""")
 def get_filelist(dir_path: str):
     """
     Returns a list of files in the specified directory.
@@ -2218,6 +3101,17 @@ def get_filelist(dir_path: str):
     return sorted([_ for _ in os.listdir(dir_path) if not _.startswith('.')])
 
 
+
+@mcp.tool(description="""
+Apply Landsat 8 surface reflectance (SR_B*) radiometric correction.
+
+Parameters:
+    input_band_path (str): Path to the input reflectance band file.
+    output_path (str): relative path for the output raster file, e.g. "question17/radiometric_correction_2022-01-16.tif"
+
+Returns:
+    str: Path to the saved corrected reflectance file.
+""")
 def radiometric_correction_sr(input_band_path, output_path):
     """
     Apply Landsat 8 surface reflectance (SR_B*) radiometric correction.
@@ -2258,6 +3152,19 @@ def radiometric_correction_sr(input_band_path, output_path):
 
     return f'Result saved at {TEMP_DIR / output_path}'
 
+
+
+@mcp.tool(description="""
+Apply cloud/shadow mask to a single Landsat 8 surface reflectance band using QA_PIXEL band.
+
+Parameters:
+    sr_band_path (str): Path to surface reflectance band (e.g., SR_B3 or SR_B5).
+    qa_pixel_path (str): Path to QA_PIXEL band.
+    output_path (str): relative path for the output raster file, e.g. "question17/cloud_mask_2022-01-16.tif"
+
+Returns:
+    str: Path to the saved masked raster file.
+""")
 def apply_cloud_mask(sr_band_path, qa_pixel_path, output_path):
     """
     Apply cloud/shadow mask to a single Landsat 8 surface reflectance band using QA_PIXEL band.
@@ -2302,3 +3209,7 @@ def apply_cloud_mask(sr_band_path, qa_pixel_path, output_path):
         dst.write(band.astype(rasterio.float32), 1)  # Write the masked band
     
     return f'Result saved at {TEMP_DIR / output_path}'
+
+
+if __name__ == "__main__":
+    mcp.run()
