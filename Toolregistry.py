@@ -1,7 +1,9 @@
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, get_origin
 import json
 import importlib
 from fastmcp import FastMCP
+import inspect
+
 
 class ToolRegistry:
     def __init__(self):
@@ -52,34 +54,74 @@ class ToolRegistry:
             return "Meta must be a dictionary!"
         self.tools[tool_name] = {"callable": tool_callable, "meta": meta}
 
+    def _infer_parameters_from_callable(self, fn: Callable) -> Dict[str, Any]:
+        """
+        从 Python 函数签名推断一个最小可用的 parameters schema
+        （仅用于 MCP 工具适配）
+        """
+        sig = inspect.signature(fn)
+
+        properties = {}
+        required = []
+
+        for name, param in sig.parameters.items():
+            # --- 类型推断（保守策略） ---
+            ann = param.annotation
+            json_type = "string"
+
+            if ann in (int, float):
+                json_type = "number"
+            elif ann is bool:
+                json_type = "boolean"
+            elif ann is list:
+                json_type = "array"
+            else:
+                origin = get_origin(ann)
+                if origin in (list, tuple):
+                    json_type = "array"
+
+            properties[name] = {
+                "type": json_type,
+                "description": ""
+            }
+
+            if param.default is inspect._empty:
+                required.append(name)
+
+        return {
+            "type": "object",
+            "properties": properties,
+            "required": required
+        }
     def load_from_fastmcp(self, mcp: FastMCP):
         """
         解析 FastMCP 对象，将所有 @mcp.tool 注册到当前 Registry。
         """
         print(f"[*] Loading tools from FastMCP: {mcp.name}...")
 
-        # 遍历 FastMCP 内部存储的工具字典
-        # FastMCP 的 _tools 属性存储了所有注册的工具定义
-        for name, tool_def in mcp._tools.items():
-            # 1. 获取函数本体 (Executable)
-            # tool_def.fn 就是那个被装饰的 Python 原生函数
-            tool_fn = tool_def.fn
+        tools: dict = mcp._tool_manager._tools
+        for tool_name, tool_obj in tools.items():
 
-            # 2. 获取元数据 (Metadata)
-            # FastMCP 已经自动生成了标准的 parameters schema (OpenAI 格式)
-            schema = tool_def.parameters_schema
-            description = tool_def.description or ""
+            # 1️⃣ 解析 callable
+            tool_callable = (
+                    getattr(tool_obj, "fn", None)
+                    or getattr(tool_obj, "callable", None)
+            )
 
-            # 3. 构建 meta 字典 (适配你的 get_unified_tool_info 逻辑)
-            # 你的代码逻辑是优先读取 meta['parameters']，所以直接存进去即可
+            if not callable(tool_callable):
+                print(f"[!] Skip tool '{tool_name}': not callable")
+                continue
+
+            inferred_parameters = self._infer_parameters_from_callable(tool_callable)
+
             meta = {
-                "description": description,
-                "parameters": schema
+                "description": getattr(tool_obj, "description", "") or "",
+                "parameters": inferred_parameters,
+                "source": "fastmcp",
             }
 
-            # 4. 注册
-            self.register_tool(name, tool_fn, meta)
-            print(f"    - Registered MCP tool: {name}")
+            self.register_tool(tool_name, tool_callable, meta)
+            print(f"    - Registered MCP tool: {tool_name}")
 
     def generate_tool_schema(self, tool_name: str) -> dict:
         """

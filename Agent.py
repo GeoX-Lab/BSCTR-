@@ -122,7 +122,7 @@ class SGCAgent(BaseAgent):
         self.working_memory = None
         self.ollama_config = {}
         try:
-            with open("./config.yaml", "r", encoding="utf-8") as f:
+            with open("/media/csudxy0218/ZL/AgentToolmem/config.yaml", "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
                 self.ollama_config = cfg.get("ollama", {})
         except Exception as e:
@@ -146,7 +146,7 @@ class SGCAgent(BaseAgent):
             "final_result": final_result,
             "history": list(self.history),
         }
-        with open(self.output_dir, "a", encoding="utf-8") as f:
+        with open("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/Earth-Bench/outputs.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         print(f"[*] Task archived to {self.output_dir}")
 
@@ -226,6 +226,13 @@ class SGCAgent(BaseAgent):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
 
+    async def _llm_call_tool(self, prompt: str, history: List[Dict] = None) -> str:
+        acc = []
+        async for chunk in self.llm.generate_stream_res(prompt=prompt, history=history):
+            if chunk.get("type") == "final":
+                acc.append(chunk.get("text", ""))
+        return "".join(acc).strip()
+
     def _parse_json(self, text: str) -> Any:
         """鲁棒的 JSON 解析器"""
         try:
@@ -244,6 +251,7 @@ class SGCAgent(BaseAgent):
         resp = await self._llm_generate_text(prompt)
         tasks = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Task Decompose]\n{tasks}"})
+        print("History is ", self.history)
         return tasks if isinstance(tasks, list) else [{"step": 1, "action": "execute", "query": query}]
 
     async def generate_tool_args(self, candidates: List[Dict], task_query: str) -> List[Dict]:
@@ -274,10 +282,11 @@ class SGCAgent(BaseAgent):
             context=context
         )
 
-        resp = await self._llm_generate_text(prompt)
+        resp = await self._llm_call_tool(prompt)
+        print("111111111111111111111111111",resp)
         parsed = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Tool Selection]\n{parsed}"})
-
+        print("History is ", self.history)
         if not parsed: return []
 
         # 标准新格式
@@ -293,6 +302,7 @@ class SGCAgent(BaseAgent):
         resp = await self._llm_generate_text(prompt)
         res = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Verify]\n{res}"})
+        print("History is ", self.history)
         if not res: return {"status": "SUCCESS", "reason": "Auto-pass due to parse error"}
         return res
 
@@ -307,6 +317,7 @@ class SGCAgent(BaseAgent):
         resp = await self._llm_generate_text(prompt)
         tasks = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[RePlan]\n{tasks}"})
+        print("History is ", self.history)
         return tasks if isinstance(tasks, list) else []
 
     async def run(self, user_query: str):

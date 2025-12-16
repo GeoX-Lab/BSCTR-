@@ -36,7 +36,7 @@ class LLM:
         Argument:
             model: YAML文件中的 model_name
         """
-        self.yaml_path = "./config.yaml"
+        self.yaml_path = "/media/csudxy0218/ZL/AgentToolmem/config.yaml"
         self.model = model
         self.config = load_model_config_from_yaml(self.yaml_path, model)
         client_kwargs = dict(self.config.get("client_kwargs"))

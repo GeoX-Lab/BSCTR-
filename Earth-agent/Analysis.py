@@ -1,6 +1,5 @@
 from pathlib import Path
 from fastmcp import FastMCP
-from utils import read_image, read_image_uint8
 
 mcp = FastMCP()
 TEMP_DIR = Path("./tools_outputs")

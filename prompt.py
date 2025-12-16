@@ -51,7 +51,7 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 {context}
 
 ### Guidelines for Remote Sensing Arguments
-1. **Selection**: Choose the tool whose description and schema best match the task.
+1. **Selection**: Choose the tool whose description and schema best match the task. When a tool returns "Result saved at /path/to/file", you must use the full returned path "/path/to/file" in all subsequent tool calls.
 2. **Data Flow**: If the tool requires an input file (e.g., `image_path`, `raster_path`, `dataset_id`), you MUST extract the actual file path or ID from the **Pipeline Context**. 
    - Look for paths ending in `.tif`, `.tiff`, `.jp2`, `.shp` or specific Product IDs in the context history.
 3. **Spatial & Temporal Formatting**: 
