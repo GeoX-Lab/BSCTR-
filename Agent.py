@@ -308,13 +308,13 @@ class SGCAgent(BaseAgent):
 
         # 转为 JSON 字符串，塞入 Prompt
         tools_info_str = json.dumps(tools_list, indent=2)
-        context = self.working_memory.get_prompt_view()
+        last_tool_answer = self.working_memory.tool_context
 
         prompt = ACTION_PROMPT.format(
             num_tools=len(tools_list),
             task_query=task_query,
             tools_info=tools_info_str,
-            context=context
+            tool_context=last_tool_answer
         )
 
         resp = await self._llm_clean_tool(prompt)
