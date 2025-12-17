@@ -3074,24 +3074,33 @@ def grayscale_to_colormap(image_path: str, save_name: str, cmap_name: str = 'vir
     return f'Result save at {save_path}'
 
 
-@mcp.tool(description="""
-Returns a list of files in the specified directory.
+@mcp.tool(description="""Inspect a dataset directory to discover available data files.
+
+Typical use cases:
+- Inspect the contents of a dataset directory
+- List available raster files (e.g., NDVI, LST)
+- Identify what data files exist before loading or processing
 
 Parameters:
-    dir_path (str): Path to the directory.
+    dir_path (str): Path to the dataset directory.
 
 Returns:
-    list: List of file names in the directory.
+    list: File names in the directory.
 """)
 def get_filelist(dir_path: str):
     """
-    Returns a list of files in the specified directory.
+    Inspect a dataset directory to discover available data files.
+
+    Typical use cases:
+    - Inspect the contents of a dataset directory
+    - List available raster files (e.g., NDVI, LST)
+    - Identify what data files exist before loading or processing
 
     Parameters:
-        dir_path (str): Path to the directory.
+        dir_path (str): Path to the dataset directory.
 
     Returns:
-        list: List of file names in the directory.
+        list: File names in the directory.
     """
     import os
     return sorted([_ for _ in os.listdir(dir_path) if not _.startswith('.')])

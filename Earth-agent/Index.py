@@ -1039,8 +1039,8 @@ def compute_tvdi(
 
     Example:
         >>> compute_tvdi(
-        ...     ndvi_path="data/ndvi_2022-01-16.tif",
-        ...     lst_path="data/lst_2022-01-16.tif",
+        ...     ndvi_path="benchmark/data/ndvi_2022-01-16.tif",
+        ...     lst_path="benchmark/data/lst_2022-01-16.tif",
         ...     output_path="question17/tvdi_2022-01-16.tif"
         ... )
         'Result saved at question17/tvdi_2022-01-16.tif'

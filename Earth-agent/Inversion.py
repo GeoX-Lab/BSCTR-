@@ -998,9 +998,9 @@ def ATI(
 
     Example:
         >>> ATI(
-        ...     day_temp_path="data/day_temp.tif",
-        ...     night_temp_path="data/night_temp.tif",
-        ...     albedo_path="data/albedo.tif",
+        ...     day_temp_path="benchmark/data/day_temp.tif",
+        ...     night_temp_path="benchmark/data/night_temp.tif",
+        ...     albedo_path="benchmark/data/albedo.tif",
         ...     output_path="question17/thermal_inertia_2022-01-16.tif"
         ... )
         'Result saved at question17/thermal_inertia_2022-01-16.tif'
