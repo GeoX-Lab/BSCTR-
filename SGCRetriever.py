@@ -77,8 +77,8 @@ class SGCRetriever:
             print(f"  {rank+1}. {c['name']} ({c['score']:.4f})")
 
         # Stage 2：兄弟抑制
-        final = self.apply_sibling_inhibition(query_vec, candidates, conflict_threshold)
-
+        # final = self.apply_sibling_inhibition(query_vec, candidates, conflict_threshold)
+        final = candidates
         return final
 
     # -------------------------------------------------
