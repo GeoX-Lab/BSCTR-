@@ -3102,8 +3102,24 @@ def get_filelist(dir_path: str):
     Returns:
         list: File names in the directory.
     """
+
+
     import os
-    return sorted([_ for _ in os.listdir(dir_path) if not _.startswith('.')])
+
+    if not os.path.isdir(dir_path):
+        return {
+            "status": "error",
+            "message": f"{dir_path} is not a valid directory"
+        }
+
+    files = sorted([f for f in os.listdir(dir_path) if not f.startswith('.')])
+
+    return {
+        "status": "ok",
+        "dir_path": dir_path,
+        "count": len(files),
+        "files": files
+    }
 
 
 
