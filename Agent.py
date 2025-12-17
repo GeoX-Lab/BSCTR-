@@ -363,7 +363,18 @@ class SGCAgent(BaseAgent):
                 # A. 检索工具 (带黑名单)
                 search_vec = self.get_text_embedding(f"{current_task['query']}")
                 # search_vec = self.get_text_embedding(f"{current_task['action']} {current_task['query']}")
-                candidates = self.retriever.search(search_vec, top_k=5, avoid_names=bad_tools)
+
+                # 带有上一个子任务影响的工具检索
+                prev_tool_id = None
+                if self.attempt_tool_chain:
+                    prev_tool_id = self.attempt_tool_chain[-1]
+
+                candidates = self.retriever.search(
+                    search_vec,
+                    top_k=5,
+                    avoid_names=bad_tools,
+                    prev_tool_id=prev_tool_id
+                )
 
                 if not candidates:
                     print("     [Error] No candidates found.")

@@ -16,9 +16,6 @@ class SGCRetriever:
         self.raw_embeddings = F.normalize(raw_embeddings, p=2, dim=1)
         self.alpha = alpha
 
-    # -------------------------------------------------
-    # 生成 SGC 特征
-    # -------------------------------------------------
     def compute_sgc_embeddings(self):
         adj = self.graph.get_sgc_adj()  # child × parent
         adj = torch.log1p(adj)  # 平滑频次
@@ -35,17 +32,25 @@ class SGCRetriever:
 
         return F.normalize(z, p=2, dim=1)
 
-    # -------------------------------------------------
-    # Stage 1: 基于 SGC 的粗排
-    # -------------------------------------------------
-    def search(self, query_vec, top_k=5, conflict_threshold=0.1, avoid_names=None):
+    def search(self, query_vec, top_k=5, conflict_threshold=0.1, avoid_names=None, pre_tool=None):
 
         avoid_names = avoid_names or []
         query_vec = F.normalize(query_vec, p=2, dim=1)
 
         z = self.compute_sgc_embeddings()
         # 计算所有工具的相似度分数
-        scores = (z @ query_vec.T).squeeze()
+        sim_query = (z @ query_vec.T).squeeze()
+        # 计算先前工具的子节点的相似分数
+        sim_pre_tool = torch.zeros_like(sim_query)
+
+        if pre_tool is not None:
+            prev_vec = z[pre_tool]
+            sim_pre_tool = (z @ prev_vec.unsqueeze(1)).squeeze()
+
+        w_q = 0.7
+        w_c = 0.3 if pre_tool is not None else 0.0
+
+        scores = w_q * sim_query + w_c * sim_pre_tool
 
         if avoid_names:
             for bad_name in avoid_names:
