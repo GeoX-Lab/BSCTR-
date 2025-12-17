@@ -323,8 +323,16 @@ class SGCAgent(BaseAgent):
         print("History is ", self.history)
         if not parsed: return []
 
-        # 标准新格式
-        return parsed.get("tool_calls", [])
+        # Case 1: LLM directly returns a list of tool calls
+        if isinstance(parsed, list):
+            return parsed
+
+        # Case 2: LLM returns a dict with "tool_calls"
+        if isinstance(parsed, dict):
+            return parsed.get("tool_calls", [])
+
+        # Fallback
+        return []
 
     async def verify(self, task_query: str, tool_name: str, args: Dict, result: str) -> Dict:
         prompt = JUDGER_PROMPT.format(
