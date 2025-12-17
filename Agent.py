@@ -1,3 +1,4 @@
+import re
 import json
 import requests
 import yaml
@@ -146,7 +147,7 @@ class SGCAgent(BaseAgent):
             "final_result": final_result,
             "history": list(self.history),
         }
-        with open("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/Earth-Bench/outputs.jsonl", "a", encoding="utf-8") as f:
+        with open("/Earth-agent/data/outputs.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         print(f"[*] Task archived to {self.output_dir}")
 
@@ -218,6 +219,16 @@ class SGCAgent(BaseAgent):
         )
         print("[*] SGC System ready.")
 
+    def _assert_tool_index_alignment(self):
+        # tool_names[i] <-> tool_map[name] == i
+        for i, name in enumerate(self.retriever.tool_names):
+            assert name in self.tool_map, f"[ALIGN ERROR] Tool '{name}' not in tool_map"
+            assert self.tool_map[name] == i, (
+                f"[ALIGN ERROR] tool_map mismatch: "
+                f"tool_names[{i}]='{name}', "
+                f"but tool_map['{name}']={self.tool_map[name]}"
+            )
+
     async def _llm_generate_text(self, prompt: str, history: List[Dict] = None) -> str:
         """辅助方法：非流式获取 LLM 完整响应"""
         acc = []
@@ -226,7 +237,7 @@ class SGCAgent(BaseAgent):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
 
-    async def _llm_call_tool(self, prompt: str, history: List[Dict] = None) -> str:
+    async def _llm_clean_tool(self, prompt: str, history: List[Dict] = None) -> str:
         acc = []
         async for chunk in self.llm.generate_stream_res(prompt=prompt, history=history):
             if chunk.get("type") == "final":
@@ -234,13 +245,37 @@ class SGCAgent(BaseAgent):
         return "".join(acc).strip()
 
     def _parse_json(self, text: str) -> Any:
-        """鲁棒的 JSON 解析器"""
-        try:
-            if "```" in text:
-                text = text.split("```")[1].replace("json", "").strip()
-            return json.loads(text)
-        except:
+        """
+        Robust JSON parser for LLM output.
+        Extracts the first valid JSON array or object from text.
+        """
+
+        if not text or not isinstance(text, str):
             return None
+
+        codeblock = re.search(r"```(?:json)?\s*(\[.*?\]|\{.*?\})\s*```", text, re.S)
+        if codeblock:
+            try:
+                return json.loads(codeblock.group(1))
+            except Exception:
+                pass
+
+        array_match = re.search(r"\[\s*\{.*?\}\s*\]", text, re.S)
+        if array_match:
+            try:
+                return json.loads(array_match.group())
+            except Exception:
+                pass
+
+        object_match = re.search(r"\{.*?\}", text, re.S)
+        if object_match:
+            try:
+                return json.loads(object_match.group())
+            except Exception:
+                pass
+
+        # 4️⃣ 彻底失败
+        return None
 
     async def decompose_query(self, query: str) -> List[Dict]:
         """
@@ -282,8 +317,7 @@ class SGCAgent(BaseAgent):
             context=context
         )
 
-        resp = await self._llm_call_tool(prompt)
-        print("111111111111111111111111111",resp)
+        resp = await self._llm_clean_tool(prompt)
         parsed = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Tool Selection]\n{parsed}"})
         print("History is ", self.history)
@@ -327,6 +361,8 @@ class SGCAgent(BaseAgent):
         if self.retriever is None or self.graph_manager is None:
             self.init_sgc_system()
 
+        self._assert_tool_index_alignment()
+
         self.working_memory = WorkingMemory(original_query=user_query)
         self.history.append({"role": "user", "content": user_query})
 
@@ -361,8 +397,8 @@ class SGCAgent(BaseAgent):
                 print(f"   [Attempt {attempt + 1}] Processing...")
 
                 # A. 检索工具 (带黑名单)
-                search_vec = self.get_text_embedding(f"{current_task['query']}")
-                # search_vec = self.get_text_embedding(f"{current_task['action']} {current_task['query']}")
+                # search_vec = self.get_text_embedding(f"{current_task['query']}")
+                search_vec = self.get_text_embedding(f"{current_task['action']} {current_task['query']}")
 
                 # 带有上一个子任务影响的工具检索
                 prev_tool_id = None
@@ -373,7 +409,7 @@ class SGCAgent(BaseAgent):
                     search_vec,
                     top_k=5,
                     avoid_names=bad_tools,
-                    prev_tool_id=prev_tool_id
+                    pre_tool=prev_tool_id
                 )
 
                 if not candidates:
@@ -510,7 +546,7 @@ class SGCAgent(BaseAgent):
                     break
         # 4. 最终总结
         final_prompt = f"Summarize the final result for: {user_query}\nBased on: {self.working_memory.get_prompt_view()}"
-        final_summary = await self._llm_generate_text(prompt=final_prompt, history=self.history)
+        final_summary = await self._llm_clean_tool(prompt=final_prompt, history=self.history)
         self.history.append({"role": "assistant", "content": final_summary})
         self.save_data(query=user_query, final_result=final_summary)
         return final_summary
