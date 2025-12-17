@@ -13,14 +13,57 @@ Maintain a professional, data-driven, and fault-tolerant attitude throughout the
 
 DECOMPOSE_PROMPT = """
 [Phase: Task Planning]
-Based on your role, decompose the user's query into a strictly ordered sequence of **atomic sub-tasks**.
+You must decompose the user's query into a strictly ordered sequence of
+**atomic and executable sub-tasks**.
 
-Our system uses a **1-hop SGC (Graph Network)** for tool retrieval. This means the "Child" task is contextually dependent on the "Parent" task.
+Our system uses a **1-hop SGC (Graph Network)** for tool retrieval.
+Each sub-task MUST correspond to a real operation that can be executed
+by an available tool.
 
-### Decomposition Rules:
-1. **Atomic & Sequential**: Do not combine search and processing. Split them (e.g., Step 1: Search -> Step 2: Download -> Step 3: Process).
-2. **Explicit Data Flow**: The query for Step N MUST explicitly mention the **data artifact** (e.g., "the Sentinel-2 image", "the search results") generated in Step N-1. This bridges the SGC graph nodes.
-3. **Remote Sensing Logic**: Ensure the logical flow matches RS workflows (e.g., you cannot Calculate NDVI before Downloading the bands).
+--------------------------------------------------
+IMPORTANT: TOOL-AWARE PLANNING RULES
+--------------------------------------------------
+
+You are operating in a system with the following execution constraints:
+
+1. **File / Dataset Inspection Rule**
+   - If a sub-task requires discovering, listing, or inspecting files in a directory or dataset
+     (e.g., "inspect contents", "check available files", "identify NDVI/LST rasters"),
+     you MUST:
+       - Use action: "inspect"
+       - The expected operation is calling the tool: **get_filelist**
+       - The data artifact produced by this step MUST be explicitly referred to as:
+         "the file list" or "the listed files"
+
+2. **NO EXPLICIT LOAD STEP (CRITICAL)**
+   - You MUST NOT create a separate "load" step.
+   - All calculation tools (e.g., TVDI, NDVI, statistics) are assumed to
+     load raster files internally given file paths or file lists.
+   - Therefore, file paths or "the file list" from the inspect step
+     should be passed DIRECTLY to calculation steps.
+
+3. **Processing Rule**
+   - Any calculation step (e.g., TVDI computation) MUST explicitly reference
+     the file list or file paths produced by the previous inspect step.
+
+--------------------------------------------------
+GENERAL DECOMPOSITION RULES
+--------------------------------------------------
+
+1. **Atomic & Sequential**
+   - Each step performs exactly ONE action from the following set:
+     (inspect, calculate, aggregate, analyze, interpret).
+   - Do NOT invent actions that do not correspond to real tools.
+
+2. **Explicit Data Flow**
+   - The query for Step N MUST explicitly mention the data artifact
+     generated in Step N-1
+     (e.g., "the file list", "the daily TVDI outputs", "the annual mean TVDI values").
+
+3. **Remote Sensing Logic**
+   - Ensure the logical order matches standard remote sensing workflows.
+   - You cannot calculate indices before files are inspected.
+   - You cannot analyze trends before annual aggregates are computed.
 
 User Query: {query}
 
@@ -28,9 +71,8 @@ User Query: {query}
 Return ONLY a JSON list of objects.
 Example:
 [
-    {{ "step": 1, "action": "search", "query": "search for Sentinel-2 images over Tokyo matching the date range" }},
-    {{ "step": 2, "action": "download", "query": "download the **Sentinel-2 images** found in step 1" }},
-    {{ "step": 3, "action": "calculate", "query": "calculate NDVI using the **downloaded images**" }}
+    {{ "step": 1, "action": "get file", "query": "get file from ... " }},
+    {{ "step": 2, "action": "calculate", "query": "calculate NDVI ..." }}
 ]
 """
 
