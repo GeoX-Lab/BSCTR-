@@ -51,8 +51,7 @@ GENERAL DECOMPOSITION RULES
 --------------------------------------------------
 
 1. **Atomic & Sequential**
-   - Each step performs exactly ONE action from the following set:
-     (inspect, calculate, aggregate, analyze, interpret).
+   - Each step performs exactly ONE action 
    - Do NOT invent actions that do not correspond to real tools.
 
 2. **Explicit Data Flow**
@@ -65,6 +64,11 @@ GENERAL DECOMPOSITION RULES
    - You cannot calculate indices before files are inspected.
    - You cannot analyze trends before annual aggregates are computed.
 
+4. **Raster-to-Scalar Rule**
+   - If an analysis requires numeric values (e.g., annual means),
+     there MUST be an explicit aggregation step that converts raster outputs
+     into numeric values using a valid tool.
+     
 User Query: {query}
 
 ### Output Requirement:
