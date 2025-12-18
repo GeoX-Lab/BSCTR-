@@ -147,7 +147,7 @@ class SGCAgent(BaseAgent):
             "final_result": final_result,
             "history": list(self.history),
         }
-        with open("/Earth-agent/data/outputs.jsonl", "a", encoding="utf-8") as f:
+        with open("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/benchmark/data/outputs.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         print(f"[*] Task archived to {self.output_dir}")
 
@@ -244,38 +244,99 @@ class SGCAgent(BaseAgent):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
 
-    def _parse_json(self, text: str) -> Any:
+    def extract_all_json_blocks(self, text: str):
         """
-        Robust JSON parser for LLM output.
-        Extracts the first valid JSON array or object from text.
+        从文本中提取所有合法 JSON（object 或 array）
+        返回 List[Any]
         """
+        results = []
+        stack = []
+        start = None
 
-        if not text or not isinstance(text, str):
-            return None
+        in_str = False
+        escape = False
 
-        codeblock = re.search(r"```(?:json)?\s*(\[.*?\]|\{.*?\})\s*```", text, re.S)
-        if codeblock:
-            try:
-                return json.loads(codeblock.group(1))
-            except Exception:
-                pass
+        for i, ch in enumerate(text):
+            # 处理字符串状态（忽略字符串内部的 { } [ ]）
+            if in_str:
+                if escape:
+                    escape = False
+                    continue
+                if ch == "\\":
+                    escape = True
+                    continue
+                if ch == '"':
+                    in_str = False
+                continue
+            else:
+                if ch == '"':
+                    in_str = True
+                    continue
 
-        array_match = re.search(r"\[\s*\{.*?\}\s*\]", text, re.S)
-        if array_match:
-            try:
-                return json.loads(array_match.group())
-            except Exception:
-                pass
+            # 只在非字符串状态下处理括号
+            if ch in "{[":
+                if not stack:
+                    start = i
+                stack.append(ch)
 
-        object_match = re.search(r"\{.*?\}", text, re.S)
-        if object_match:
-            try:
-                return json.loads(object_match.group())
-            except Exception:
-                pass
+            elif ch in "}]":
+                if not stack:
+                    continue
 
-        # 4️⃣ 彻底失败
-        return None
+                open_ch = stack.pop()
+
+                # 可选：括号类型匹配检查（更严格）
+                if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                    # 不匹配：清空，避免产生错误块
+                    stack = []
+                    start = None
+                    continue
+
+                if not stack and start is not None:
+                    block = text[start:i + 1]
+                    try:
+                        results.append(json.loads(block))
+                    except Exception:
+                        pass
+                    start = None
+
+        return results
+
+    def _parse_json(self, text: str):
+        blocks = self.extract_all_json_blocks(text)
+
+        parsed = {
+            "tasks": None,
+            "tool_calls": None,
+            "verification": None
+        }
+
+        for b in blocks:
+            if (
+                    isinstance(b, list) and b
+                    and isinstance(b[0], dict)
+                    and "step" in b[0]
+            ):
+                parsed["tasks"] = b
+                continue
+
+            if isinstance(b, dict) and "tool_calls" in b and isinstance(b["tool_calls"], list):
+                parsed["tool_calls"] = b["tool_calls"]
+                continue
+
+            if (
+                    isinstance(b, list) and b
+                    and isinstance(b[0], dict)
+                    and "tool_name" in b[0]
+            ):
+                parsed["tool_calls"] = b
+                continue
+
+            if isinstance(b, dict) and "status" in b and "error_type" in b:
+                parsed["verification"] = b
+                continue
+
+        return parsed
 
     async def decompose_query(self, query: str) -> List[Dict]:
         """
@@ -285,9 +346,17 @@ class SGCAgent(BaseAgent):
         prompt = self.sys_prompt_template + DECOMPOSE_PROMPT.format(query=query)
         resp = await self._llm_generate_text(prompt)
         tasks = self._parse_json(resp)
+        tasks = tasks["tasks"]
+
+        if not tasks or not isinstance(tasks, list):
+            tasks = [{
+                "step": 1,
+                "action": "execute",
+                "query": query
+            }]
         self.history.append({"role": "assistant", "content": f"[Task Decompose]\n{tasks}"})
         print("History is ", self.history)
-        return tasks if isinstance(tasks, list) else [{"step": 1, "action": "execute", "query": query}]
+        return tasks
 
     async def generate_tool_args(self, candidates: List[Dict], task_query: str) -> List[Dict]:
         """
@@ -309,6 +378,7 @@ class SGCAgent(BaseAgent):
         # 转为 JSON 字符串，塞入 Prompt
         tools_info_str = json.dumps(tools_list, indent=2)
         last_tool_answer = self.working_memory.tool_context
+        print(last_tool_answer)
 
         prompt = ACTION_PROMPT.format(
             num_tools=len(tools_list),
@@ -318,21 +388,16 @@ class SGCAgent(BaseAgent):
         )
 
         resp = await self._llm_clean_tool(prompt)
+        print("Here is resp", resp)
         parsed = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Tool Selection]\n{parsed}"})
         print("History is ", self.history)
-        if not parsed: return []
+        tool_calls = parsed["tool_calls"]
 
-        # Case 1: LLM directly returns a list of tool calls
-        if isinstance(parsed, list):
-            return parsed
-
-        # Case 2: LLM returns a dict with "tool_calls"
-        if isinstance(parsed, dict):
-            return parsed.get("tool_calls", [])
-
-        # Fallback
-        return []
+        if not tool_calls:
+            print("❌ No tool_calls found in LLM output.")
+            return []
+        return tool_calls
 
     async def verify(self, task_query: str, tool_name: str, args: Dict, result: str) -> Dict:
         prompt = JUDGER_PROMPT.format(
@@ -343,10 +408,29 @@ class SGCAgent(BaseAgent):
         )
         resp = await self._llm_generate_text(prompt)
         res = self._parse_json(resp)
-        self.history.append({"role": "assistant", "content": f"[Verify]\n{res}"})
+        verification = res["verification"]
+
+        if not verification or not isinstance(verification, dict):
+            verification = {
+                "status": "SUCCESS",
+                "error_type": "None",
+                "reason": "Auto-pass: verification JSON not found or parse failed.",
+                "suggestion": None
+            }
+
+        verification.setdefault("status", "SUCCESS")
+        verification.setdefault("error_type", "None")
+        verification.setdefault("reason", "")
+        verification.setdefault("suggestion", None)
+
+        self.history.append({
+            "role": "assistant",
+            "content": f"[Verify]\n{json.dumps(verification, ensure_ascii=False, indent=2)}"
+        })
+
         print("History is ", self.history)
-        if not res: return {"status": "SUCCESS", "reason": "Auto-pass due to parse error"}
-        return res
+
+        return verification
 
     async def re_plan(self, failure_reason: str) -> List[Dict]:
         self.attempt_tool_chain = []
@@ -357,10 +441,20 @@ class SGCAgent(BaseAgent):
             failure_reason=failure_reason
         )
         resp = await self._llm_generate_text(prompt)
-        tasks = self._parse_json(resp)
-        self.history.append({"role": "assistant", "content": f"[RePlan]\n{tasks}"})
+        parsed = self._parse_json(resp)
+        tasks = parsed["tasks"]
+
+        if not tasks or not isinstance(tasks, list):
+            tasks = []
+
+        self.history.append({
+            "role": "assistant",
+            "content": f"[RePlan]\n{json.dumps(tasks, ensure_ascii=False, indent=2)}"
+        })
+
         print("History is ", self.history)
-        return tasks if isinstance(tasks, list) else []
+
+        return tasks
 
     async def run(self, user_query: str):
         # 1. 初始化
@@ -425,6 +519,7 @@ class SGCAgent(BaseAgent):
                     break
 
                 # B1. LLM 选择工具 (返回列表)
+                print("Start tool choose!")
                 tool_calls = await self.generate_tool_args(candidates, current_task['query'])
 
                 if not tool_calls:
