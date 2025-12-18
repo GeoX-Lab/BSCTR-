@@ -91,7 +91,7 @@ async def main():
         else:
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
-    agent = SGCAgent(initial_model="qwen3-max")
+    agent = SGCAgent(initial_model="Qwen/Qwen3-235B-A22B-Instruct-2507")
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
