@@ -158,4 +158,7 @@ The current execution path has encountered a critical failure. You need to devis
 3. Do NOT include steps that are already finished.
 
 Return ONLY a JSON list of objects (the new sub-tasks).
+[
+    {{ "step": 1, "action": "get file", "query": "get file from ... " }}
+]
 """
