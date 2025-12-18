@@ -32,7 +32,7 @@ class SGCRetriever:
 
         return F.normalize(z, p=2, dim=1)
 
-    def search(self, query_vec, top_k=5, conflict_threshold=0.1, avoid_names=None, pre_tool=None):
+    def search(self, query_vec, top_k=10, conflict_threshold=0.1, avoid_names=None, pre_tool=None):
 
         avoid_names = avoid_names or []
         query_vec = F.normalize(query_vec, p=2, dim=1)
