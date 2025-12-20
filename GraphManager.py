@@ -30,7 +30,11 @@ class GraphManager:
         # 转换为 tensor 以确保索引操作的安全性
         parents = torch.tensor(trajectory[:-1], dtype=torch.long, device=self.device)
         children = torch.tensor(trajectory[1:], dtype=torch.long, device=self.device)
-        self.adj[parents, children] += 1.0
+
+        # 取消自环
+        mask = parents != children
+        if mask.any():
+            self.adj[parents[mask], children[mask]] += 1.0
 
     # -----------------------
     # 图数据输出（供 SGC + 检索）
