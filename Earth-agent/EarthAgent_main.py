@@ -103,7 +103,7 @@ async def main():
         return
 
     # 这里示例只跑第一个问题
-    sample = samples[0]
+    sample = samples[50]
     user_query = build_prompt(sample)
 
     print("\n================ PROMPT ================")

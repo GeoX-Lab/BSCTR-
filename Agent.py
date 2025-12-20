@@ -170,15 +170,16 @@ class SGCAgent(BaseAgent):
             print(f"Error getting embedding: {e}")
             return torch.zeros((1, dim), dtype=torch.float32, device=self.device)
 
-    def load_trajectory_from_file(self, file_path):
+    def load_trajectory_from_file(self, file_path, numbers: int):
         """
         从文件中读取历史轨迹，返回工具名称的列表
         """
-        trajectorys = []
         with open(file_path, 'r') as file:
             data = json.load(file)
-        trajectorys.append(list(data.values()))
-        return trajectorys
+        trajectories = list(data.values())
+        trajectories_list = trajectories[:numbers]
+
+        return trajectories_list
 
     def init_sgc_system(self, trajectory_file_path=None):
         """
@@ -220,22 +221,36 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             print("[*] Reading trajectory from file and updating graph...")
-            trajectorys = self.load_trajectory_from_file(trajectory_file_path)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 48)
+            print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
             total_missing = 0
 
-            for traj in trajectorys:
+            for traj in trajectories:  # 每一条工具链
                 indices = []
                 last = None
 
-                for name in traj:
+                print("\n[DEBUG] traj =", traj)
+                print("[DEBUG] type(traj) =", type(traj))
+
+                for i, x in enumerate(traj):
+                    print(f"   [DEBUG] traj[{i}] =", repr(x), "type:", type(x))
+
+                for name in traj:  # 每一个工具名
+                    if not isinstance(name, str):
+                        continue
+
                     if name not in self.tool_map:
                         total_missing += 1
                         continue
+
                     idx = self.tool_map[name]
+
+                    # 去掉连续重复（避免自环）
                     if last is not None and idx == last:
                         continue
+
                     indices.append(idx)
                     last = idx
 
@@ -244,7 +259,6 @@ class SGCAgent(BaseAgent):
                     total_edges += len(indices) - 1
 
             print(f"[*] Trajectory init done: edges={total_edges}, missing_tools={total_missing}")
-
         # 4. 初始化 SGC 检索器
         # 计算将利用 GPU 加速
         self.retriever = SGCRetriever(
@@ -495,9 +509,15 @@ class SGCAgent(BaseAgent):
     async def run(self, user_query: str):
         # 1. 初始化
         self.history = []
+        trajectory_path = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/tool_chain.json"
 
         if self.retriever is None or self.graph_manager is None:
-            self.init_sgc_system()
+            if trajectory_path is None:
+                self.init_sgc_system()
+            else:
+                self.init_sgc_system(trajectory_path)
+        # 显示初始化边
+        # self.print_graph_edges(self.graph_manager, self.tool_names)
 
         self._assert_tool_index_alignment()
 
@@ -689,3 +709,13 @@ class SGCAgent(BaseAgent):
         self.history.append({"role": "assistant", "content": final_summary})
         self.save_data(query=user_query, final_result=final_summary)
         return final_summary
+
+    def print_graph_edges(self, graph_manager, tool_names, k=20):
+        edges = torch.nonzero(graph_manager.adj, as_tuple=False)
+
+        print(f"[CHECK] Showing {min(k, edges.shape[0])} edges (parent → child):")
+        for i in range(min(k, edges.shape[0])):
+            p, c = edges[i].tolist()
+            w = graph_manager.adj[p, c].item()
+            print(f"  {tool_names[p]}  →  {tool_names[c]}   (weight={w})")
+
