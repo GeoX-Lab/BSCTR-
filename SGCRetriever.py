@@ -18,7 +18,7 @@ class SGCRetriever:
 
     def compute_sgc_embeddings(self):
         adj = self.graph.get_sgc_adj()  # child × parent
-        adj = torch.log1p(adj)  # 平滑频次
+        # adj = torch.log1p(adj)  # 平滑频次
         row_sum = adj.sum(dim=1, keepdim=True)
         row_sum[row_sum == 0] = 1.0
         adj_norm = adj / row_sum                       # 归一化

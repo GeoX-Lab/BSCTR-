@@ -19,7 +19,9 @@ class GraphManager:
     # -----------------------
     def add_edge(self, parent, child, weight=1.0):
         if parent != child:
-            self.adj[parent, child] += weight
+            # self.adj[parent, child] += weight
+            self.adj[parent, child] = weight
+
 
     def update_from_trajectory(self, trajectory: list):
         """
@@ -34,7 +36,8 @@ class GraphManager:
         # 取消自环
         mask = parents != children
         if mask.any():
-            self.adj[parents[mask], children[mask]] += 1.0
+            # self.adj[parents[mask], children[mask]] += 1.0
+            self.adj[parents[mask], children[mask]] = 1.0
 
     # -----------------------
     # 图数据输出（供 SGC + 检索）
