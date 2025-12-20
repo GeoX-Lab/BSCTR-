@@ -169,16 +169,16 @@ class SGCAgent(BaseAgent):
             dim = self.ollama_config.get("embedding_dim", 768)
             print(f"Error getting embedding: {e}")
             return torch.zeros((1, dim), dtype=torch.float32, device=self.device)
+
     def load_trajectory_from_file(self, file_path):
         """
         从文件中读取历史轨迹，返回工具名称的列表
         """
-        trajectory = []
+        trajectorys = []
         with open(file_path, 'r') as file:
-            for line in file:
-                tool_name = line.strip()  # 假设每行一个工具名称
-                trajectory.append(tool_name)
-        return trajectory
+            data = json.load(file)
+        trajectorys.append(list(data.values()))
+        return trajectorys
 
     def init_sgc_system(self, trajectory_file_path=None):
         """
@@ -220,13 +220,30 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             print("[*] Reading trajectory from file and updating graph...")
-            trajectory = self.load_trajectory_from_file(trajectory_file_path)
-            # 将工具名称序列映射到工具索引
-            trajectory_indices = [self.tool_map.get(tool_name, -1) for tool_name in trajectory]
-            # 删除无效索引（如果有）
-            trajectory_indices = [idx for idx in trajectory_indices if idx != -1]
-            if trajectory_indices:
-                self.graph_manager.update_from_trajectory(trajectory_indices)
+            trajectorys = self.load_trajectory_from_file(trajectory_file_path)
+
+            total_edges = 0
+            total_missing = 0
+
+            for traj in trajectorys:
+                indices = []
+                last = None
+
+                for name in traj:
+                    if name not in self.tool_map:
+                        total_missing += 1
+                        continue
+                    idx = self.tool_map[name]
+                    if last is not None and idx == last:
+                        continue
+                    indices.append(idx)
+                    last = idx
+
+                if len(indices) >= 2:
+                    self.graph_manager.update_from_trajectory(indices)
+                    total_edges += len(indices) - 1
+
+            print(f"[*] Trajectory init done: edges={total_edges}, missing_tools={total_missing}")
 
         # 4. 初始化 SGC 检索器
         # 计算将利用 GPU 加速
