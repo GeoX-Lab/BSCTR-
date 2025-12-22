@@ -555,9 +555,11 @@ class SGCAgent(BaseAgent):
             while attempt <= LOCAL_RETRIES:
                 print(f"   [Attempt {attempt + 1}] Processing...")
 
-                # A. 检索工具 (带黑名单)
+                # A. 检索工具
+                tool_search = current_task['tool_search']
+                print(f"   [Searching_query {tool_search}]\n[Current_query {current_task['query']}]")
                 # search_vec = self.get_text_embedding(f"{current_task['query']}")
-                search_vec = self.get_text_embedding(f"{current_task['action']} {current_task['query']}")
+                search_vec = self.get_text_embedding(f"{current_task['action']}{tool_search}")
 
                 # 带有上一个子任务影响的工具检索
                 prev_tool_id = None
@@ -718,8 +720,17 @@ class SGCAgent(BaseAgent):
                     print("[!] Re-planning failed to generate tasks. Aborting.")
                     break
         # 4. 最终总结
-        final_prompt = f"Summarize the final result for: {user_query}\nBased on: {self.working_memory.get_prompt_view()}"
-        final_summary = await self._llm_clean_tool(prompt=final_prompt, history=self.history)
+        final_prompt = f"""
+            You are generating the final report for this agent run.\n
+            User query:\n{user_query}\n
+            Working memory view:\n{self.working_memory.get_prompt_view()}\n
+            Requirements:\n
+            1) Always output a final answer from answer choices(A/B/C/D).\n
+            2) If FAILED, include: completed steps, last failure info, and what is missing.\n
+            3) If there are answer choices (A/B/C/D) in the user query, select the best option if possible; 
+            otherwise state that it cannot be determined from available tool outputs.\n"""
+
+        final_summary = await self._llm_clean_tool(prompt=final_prompt)
         self.history.append({"role": "assistant", "content": final_summary})
         self.save_data(query=user_query, final_result=final_summary)
         return final_summary
