@@ -13,12 +13,8 @@ Maintain a professional, data-driven, and fault-tolerant attitude throughout the
 
 DECOMPOSE_PROMPT = """
 [Phase: Task Planning]
-You must decompose the user's query into a strictly ordered sequence of
-**atomic and executable sub-tasks**.
-
-Our system uses a **1-hop SGC (Graph Network)** for tool retrieval.
-Each sub-task MUST correspond to a real operation that can be executed
-by an available tool.
+You must decompose the user's query into a **strictly ordered sequence of atomic, executable sub-tasks**.
+Our system uses a **1-hop SGC (Graph Network)** for tool retrieval. Each sub-task MUST correspond to a **real operation** that can be executed by an available tool.
 
 --------------------------------------------------
 IMPORTANT: TOOL-AWARE PLANNING RULES
@@ -97,13 +93,11 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 {tool_context}
 
 ### Guidelines for Remote Sensing Arguments
-1. **Selection**: Choose the tool whose description and schema best match the task. When a tool returns "Result saved at /path/to/file", you must use the full returned path "/path/to/file" in all subsequent tool calls.
-2. **Data Flow**: If the tool requires an input file (e.g., `image_path`, `raster_path`, `dataset_id`), you MUST extract the actual file path or ID from the **The answer of last tool_call**. 
-   - Look for paths ending in `.tif`, `.tiff`, `.jp2`, `.shp` or specific Product IDs in the context history.
-3. **Spatial & Temporal Formatting**: 
-   - Ensure dates are in `YYYY-MM-DD` format unless specified otherwise.
-   - If a Bounding Box (bbox) is required, ensure the order matches the schema (usually `[min_lon, min_lat, max_lon, max_lat]`).
-4. **Schema Adherence**: Do NOT invent parameters. Only use keys defined in the **Tool Schema**.
+1. **Selection**: Choose the tool whose description and schema best match the task. If a tool produces a result like "Result saved at /path/to/file", use the full path "/path/to/file" in subsequent calls.
+2. **Data Flow**: If the tool requires an input file (e.g., `image_path`, `raster_path`), you MUST extract the actual file path from **The answer of last tool_call**.
+   - Look for file paths ending in `.tif`, `.tiff`, `.jp2`, `.shp`, or Product IDs.
+3. **Spatial & Temporal Formatting**: Ensure that all dates follow `YYYY-MM-DD` format and that Bounding Boxes are correctly formatted (e.g., `[min_lon, min_lat, max_lon, max_lat]`).
+4. **Schema Adherence**: Never invent parameters. Only use keys defined in the **Tool Schema**.
 
 ### Output Requirement
 Return **ONLY** a pure JSON object.
