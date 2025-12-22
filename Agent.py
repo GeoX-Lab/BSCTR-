@@ -405,7 +405,7 @@ class SGCAgent(BaseAgent):
                 "query": query
             }]
         self.history.append({"role": "assistant", "content": f"[Task Decompose]\n{tasks}"})
-        print("History is ", self.history)
+        # print("History is ", self.history)
         return tasks
 
     async def generate_tool_args(self, candidates: List[Dict], task_query: str) -> List[Dict]:
@@ -438,10 +438,10 @@ class SGCAgent(BaseAgent):
         )
 
         resp = await self._llm_clean_tool(prompt)
-        print("Here is resp", resp)
+        # print("Here is resp", resp)
         parsed = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Tool Selection]\n{parsed}"})
-        print("History is ", self.history)
+        # print("History is ", self.history)
         tool_calls = parsed["tool_calls"]
 
         if not tool_calls:
@@ -478,7 +478,7 @@ class SGCAgent(BaseAgent):
             "content": f"[Verify]\n{json.dumps(verification, ensure_ascii=False, indent=2)}"
         })
 
-        print("History is ", self.history)
+        # print("History is ", self.history)
 
         return verification
 
@@ -501,7 +501,7 @@ class SGCAgent(BaseAgent):
             "content": f"[RePlan]\n{json.dumps(tasks, ensure_ascii=False, indent=2)}"
         })
 
-        print("History is ", self.history)
+        # print("History is ", self.history)
 
         return tasks
 
@@ -614,9 +614,20 @@ class SGCAgent(BaseAgent):
                         if tool_id is not None:
                             if self.attempt_tool_chain:
                                 prev_tool_id = self.attempt_tool_chain[-1]
+                                # prev_tool = self.tool_map.get(prev_tool_id)
+                                # if prev_tool_id != tool_id:
+                                #     # 🔥 立即加边（父 → 子）
+                                #     self.graph_manager.add_edge(prev_tool_id, tool_id, weight=1.0)
+                                #     print("Update SGC graph from {} to {}".format(prev_tool, tool_name))
+                                # 确保 prev_tool_id 是有效的
+                                prev_tool = self.tool_names[prev_tool_id]
+                                if prev_tool is None:
+                                    print(f"[ERROR] prev_tool_id {prev_tool_id} not found in tool_map!")
+
                                 if prev_tool_id != tool_id:
                                     # 🔥 立即加边（父 → 子）
                                     self.graph_manager.add_edge(prev_tool_id, tool_id, weight=1.0)
+                                    print("Update SGC graph from {} to {}".format(prev_tool, tool_name))
 
                             self.attempt_tool_chain.append(tool_id)
 
