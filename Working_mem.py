@@ -60,3 +60,57 @@ class WorkingMemory:
             "recent_steps": self.recent_steps[-3:]
         }
         return json.dumps(view, ensure_ascii=False, indent=2)
+
+    def get_replan_context(self) -> str:
+
+        completed = self.finished_tasks if self.finished_tasks else ["None"]
+        artifact_lines = []
+        if self.artifacts:
+            for name, value in self.artifacts.items():
+                artifact_lines.append(f"- {name}: {value}")
+        else:
+            artifact_lines.append("- None")
+
+        tool_lines = []
+        for tool, info in self.tool_context.items():
+            if info.get("success"):
+                result = info.get("last_result", "N/A")
+                step = info.get("step", "N/A")
+                tool_lines.append(
+                    f"- Step {step}: Tool '{tool}' produced output: {result}"
+                )
+
+        if not tool_lines:
+            tool_lines.append("- None")
+
+        last_failure = None
+        for step in reversed(self.recent_steps):
+            if step.get("status") == "FAIL":
+                last_failure = step
+                break
+
+        if last_failure:
+            failure_block = (
+                f"- Failed Task: {last_failure.get('current_task', 'Unknown')}\n"
+                f"- Tool: {last_failure.get('tool', 'Unknown')}\n"
+                f"- Error Type: {last_failure.get('error_type', 'Unknown')}\n"
+                f"- Reason: {last_failure.get('reason', 'Unknown')}"
+            )
+        else:
+            failure_block = "- None"
+
+        context = f"""
+            ### Successfully Completed Tasks
+            {chr(10).join(f"- {t}" for t in completed)}
+        
+            ### Available Data Artifacts (Reusable)
+            {chr(10).join(artifact_lines)}
+        
+            ### Available Tool Outputs (Reusable)
+            {chr(10).join(tool_lines)}
+        
+            ### Last Failure
+            {failure_block}
+            """
+
+        return context.strip()
