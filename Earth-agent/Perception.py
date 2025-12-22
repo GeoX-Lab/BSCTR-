@@ -385,7 +385,7 @@ def calculate_bbox_area(bboxes, gsd=None):
 def get_model_output(model_name: str, input_image_path: str, **args):
     import pandas as pd
 
-    results = pd.read_csv('/root/autodl-tmp/Earth-Agent/benchmark/model_results.csv', sep=';')
+    results = pd.read_csv("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/model_results.csv", sep=';')
     result = None
     try:
         # classification
@@ -476,8 +476,6 @@ array([
 """)
 def RemoteCLIP(input_image_path):
     return get_model_output('RemoteCLIP', input_image_path)
-
-
 
 @mcp.tool(description="""
 Strip_R_CNN is a remote sensing object detection model with a strong focus on 
