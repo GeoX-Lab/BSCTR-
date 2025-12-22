@@ -483,7 +483,6 @@ class SGCAgent(BaseAgent):
         return verification
 
     async def re_plan(self, failure_reason: str) -> List[Dict]:
-        self.attempt_tool_chain = []
         prompt = REPLAN_PROMPT.format(
             original_query=self.working_memory.original_query,
             finished_tasks=self.working_memory.finished_tasks,
@@ -509,6 +508,7 @@ class SGCAgent(BaseAgent):
     async def run(self, user_query: str):
         # 1. 初始化
         self.history = []
+        self.attempt_tool_chain = []
         trajectory_path = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/tool_chain.json"
 
         if self.retriever is None or self.graph_manager is None:
@@ -538,12 +538,11 @@ class SGCAgent(BaseAgent):
         while task_idx < len(task_queue):
             current_task = task_queue[task_idx]
             self.working_memory.start_task(current_task['query'])
-            self.attempt_tool_chain = []
+
             print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
 
             # 每次新任务开始前，初始化黑名单
             # [重要] 必须在这里重置，否则上一个任务排除的工具会影响这个任务
-            bad_tools = []
             local_success = False
             last_verification_error = None
             LOCAL_RETRIES = 2
@@ -566,7 +565,6 @@ class SGCAgent(BaseAgent):
                 candidates = self.retriever.search(
                     search_vec,
                     top_k=5,
-                    avoid_names=bad_tools,
                     pre_tool=prev_tool_id
                 )
 
@@ -611,9 +609,15 @@ class SGCAgent(BaseAgent):
                         # 1. 记录日志
                         self.working_memory.record_tool_success(task_idx + 1, tool_name, args, result)
 
-                        # 2. 图记录
+                        # 2. 图更新
                         tool_id = self.tool_map.get(tool_name)
                         if tool_id is not None:
+                            if self.attempt_tool_chain:
+                                prev_tool_id = self.attempt_tool_chain[-1]
+                                if prev_tool_id != tool_id:
+                                    # 🔥 立即加边（父 → 子）
+                                    self.graph_manager.add_edge(prev_tool_id, tool_id, weight=1.0)
+
                             self.attempt_tool_chain.append(tool_id)
 
                     else:
@@ -631,8 +635,6 @@ class SGCAgent(BaseAgent):
                             verification.get("error_type"),
                             verification.get("reason")
                         )
-                        # 轨迹回滚
-                        self.attempt_tool_chain = []
                         # 中断子循环（多工具链路中只要一环断了，后面就没必要执行了）
                         break
 
@@ -642,9 +644,9 @@ class SGCAgent(BaseAgent):
                 if step_tools_success:
                     local_success = True
 
-                    if len(self.attempt_tool_chain) >= 2:
-                        self.graph_manager.update_from_trajectory(self.attempt_tool_chain)
-                    self.attempt_tool_chain = []
+                    # if len(self.attempt_tool_chain) >= 2:
+                    #     self.graph_manager.update_from_trajectory(self.attempt_tool_chain)
+                    # self.attempt_tool_chain = []
 
                     self.working_memory.finished_tasks.append(current_task['query'])
                     break  # 成功！跳出 attempt 循环，进入下一个 Task
@@ -655,7 +657,6 @@ class SGCAgent(BaseAgent):
 
                     if err_type == 'ToolMismatch':
                         print(f"     [Correction] Tool '{failed_tool_name}' mismatch. Switching tool...")
-                        if failed_tool_name: bad_tools.append(failed_tool_name)
                         attempt += 1
                         continue
 
@@ -718,4 +719,3 @@ class SGCAgent(BaseAgent):
             p, c = edges[i].tolist()
             w = graph_manager.adj[p, c].item()
             print(f"  {tool_names[p]}  →  {tool_names[c]}   (weight={w})")
-
