@@ -142,18 +142,109 @@ Return ONLY a JSON object:
 
 REPLAN_PROMPT = """
 [Phase: Strategic Re-planning]
-The current execution path has encountered a critical failure. You need to devise a **New Plan** to achieve the original goal, starting from the current state.
+You are performing **Strategic Re-planning** after a critical failure.
+This phase follows the SAME planning principles, constraints, and rules
+as the original **Task Planning (DECOMPOSE)** phase.
 
-### Situation Report
-- **Original Goal**: "{original_query}"
-- **Successfully Completed**: {finished_tasks}
-- **Failed Steps**: {failed_steps}
-- **Critical Failure**: {failure_reason}
+You must generate a **new, strictly ordered sequence of atomic and executable sub-tasks**
+that continue from the CURRENT EXECUTION STATE, NOT from the beginning.
 
-### Instructions:
-1. Analyze why the last step failed.
-2. Generate a new sequence of sub-tasks to bridge the gap from the *Current State* to the *Final Goal*.
-3. Do NOT include steps that are already finished.
+Our system uses a **1-hop SGC (Graph Network)** for tool retrieval.
+Each sub-task MUST correspond to a **real operation** that can be executed
+by an available tool.
+
+--------------------------------------------------
+CURRENT EXECUTION STATE (FROM WORKING MEMORY)
+--------------------------------------------------
+
+### Original User Goal
+"{original_query}"
+
+### Successfully Completed Tasks (FINAL & REUSABLE)
+{finished_tasks}
+
+- These steps are VALID and COMPLETE.
+- Their outputs already exist in the system.
+- You MUST assume these results can be directly reused.
+
+### Available Data Artifacts (IMPORTANT)
+The following intermediate outputs are already stored in Working Memory
+and MUST be reused instead of recomputed:
+{working_memory_outputs}
+
+### Failed Steps
+{failed_steps}
+
+### Failure Reason
+{failure_reason}
+
+--------------------------------------------------
+IMPORTANT: TOOL-AWARE PLANNING RULES (STILL APPLY)
+--------------------------------------------------
+
+You are operating under the SAME execution constraints as in Task Planning:
+
+1. **File / Dataset Inspection Rule**
+   - Only introduce an "inspect" step (calling **get_filelist**) IF and ONLY IF:
+     - the required files are NOT already available in Working Memory.
+   - You are STRICTLY FORBIDDEN from re-inspecting datasets
+     whose results already exist.
+
+2. **NO EXPLICIT LOAD STEP (CRITICAL)**
+   - You MUST NOT introduce any "load" step.
+   - Existing file paths or file lists from Working Memory
+     MUST be passed DIRECTLY into calculation steps.
+
+3. **Processing Rule**
+   - Any calculation step MUST explicitly reference
+     existing file paths, file lists, or outputs
+     produced by completed tasks.
+
+--------------------------------------------------
+GENERAL RE-PLANNING RULES (ALIGNED WITH DECOMPOSE)
+--------------------------------------------------
+
+1. **Atomic & Sequential**
+   - Each step performs exactly ONE action.
+   - Do NOT invent actions that do not correspond to real tools.
+
+2. **Explicit Data Flow**
+   - Each new step MUST explicitly reference
+     the data artifact produced by:
+       - either a previously completed task, or
+       - the immediately preceding re-planned step.
+   - Examples:
+     - "use the existing NDVI rasters"
+     - "based on the annual mean NDVI values"
+
+3. **Remote Sensing Logic**
+   - The workflow order MUST still follow standard remote sensing logic.
+   - You cannot recompute indices that already exist.
+   - You cannot analyze trends before required aggregates exist.
+
+4. **Raster-to-Scalar Rule**
+   - If the remaining analysis requires numeric values:
+     - You MUST include an explicit aggregation step
+       using a valid tool.
+     - Do NOT assume raster values are already numeric.
+
+--------------------------------------------------
+RE-PLANNING OBJECTIVE
+--------------------------------------------------
+
+Your task is to:
+- Continue from the CURRENT STATE
+- Repair the failed part of the workflow
+- Reach the FINAL GOAL with the MINIMUM necessary new steps
+
+You are STRICTLY FORBIDDEN from:
+- Restarting the workflow
+- Repeating completed steps
+- Ignoring existing data artifacts
+
+--------------------------------------------------
+OUTPUT REQUIREMENT
+--------------------------------------------------
 
 Return ONLY a JSON list of objects (the new sub-tasks).
 [
