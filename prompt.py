@@ -17,6 +17,36 @@ You must decompose the user's query into a **strictly ordered sequence of atomic
 Our system uses a **1-hop SGC (Graph Network)** for tool retrieval. Each sub-task MUST correspond to a **real operation** that can be executed by an available tool.
 
 --------------------------------------------------
+CRITICAL: TOOL-AWARE OUTPUT FORMAT
+--------------------------------------------------
+
+For EACH sub-task, you MUST output **TWO DIFFERENT DESCRIPTIONS**:
+
+1. **query**
+   - A full natural-language description of the step
+   - MAY include:
+     - file lists
+     - paths
+     - temporal ranges
+     - regions
+     - intermediate data artifacts
+   - Used for execution, verification, and reasoning
+
+2. **tool_search**  EXTREMELY IMPORTANT
+   - This field is used ONLY for tool retrieval
+   - It MUST:
+     - Describe ONLY the core operation / capability
+     - Be SHORT and GENERIC
+     - Be parameter-free
+   - It MUST NOT include:
+     - file paths
+     - directory names
+     - years, dates, regions
+     - dataset names
+     - variable names
+   - Think of it as:
+     "What does the tool DO?" (not "what data does it use")
+--------------------------------------------------
 IMPORTANT: TOOL-AWARE PLANNING RULES
 --------------------------------------------------
 
@@ -26,7 +56,6 @@ You are operating in a system with the following execution constraints:
    - If a sub-task requires discovering, listing, or inspecting files in a directory or dataset
      (e.g., "inspect contents", "check available files", "identify NDVI/LST rasters"),
      you MUST:
-       - Use "inspect the dataset directory to discover available data files" or "list available raster files in the dataset directory" or "identify what data files exist in the dataset directory" to search get_filelist tool.
        - The data artifact produced by this step MUST be explicitly referred to as:
          "the file list" or "the listed files"
 
@@ -41,17 +70,6 @@ You are operating in a system with the following execution constraints:
    - Any calculation step (e.g., TVDI computation) MUST explicitly reference
      the file list or file paths produced by the previous inspect step.
     
-You are aware that the system provides specialized tools for
-numeric aggregation and statistical analysis, including:
-
-- computing mean values from raster datasets
-- averaging batches of images
-- aggregating multiple GeoTIFF files into a single raster
-- computing pixel ratios based on thresholds
-- calculating numeric differences between results
-
-You should actively decompose tasks to leverage these tools instead of performing implicit or vague analysis steps.
-
 --------------------------------------------------
 GENERAL DECOMPOSITION RULES
 --------------------------------------------------
@@ -81,8 +99,14 @@ User Query: {query}
 Return ONLY a JSON list of objects.
 Example:
 [
-    {{ "step": 1, "action": "get file", "query": "get file from ... " }},
-    {{ "step": 2, "action": "calculate", "query": "calculate NDVI ..." }}
+    {{ "step": 1, 
+        "action": "get file", 
+        "query": "get file from ... ",
+        "tool_search": "inspect the dataset directory to discover available data files" }},
+    {{ "step": 2, 
+        "action": "calculate", 
+        "query": "calculate absolute ...", 
+        "tool_search": "Compute the absolute difference between two numbers." }},
 ]
 """
 
@@ -164,6 +188,37 @@ Each sub-task MUST correspond to a **real operation** that can be executed
 by an available tool.
 
 --------------------------------------------------
+CRITICAL: TOOL-AWARE OUTPUT FORMAT
+--------------------------------------------------
+
+For EACH sub-task, you MUST output **TWO DIFFERENT DESCRIPTIONS**:
+
+1. **query**
+   - A full natural-language description of the step
+   - MAY include:
+     - file lists
+     - paths
+     - temporal ranges
+     - regions
+     - intermediate data artifacts
+   - Used for execution, verification, and reasoning
+
+2. **tool_search**  EXTREMELY IMPORTANT
+   - This field is used ONLY for tool retrieval
+   - It MUST:
+     - Describe ONLY the core operation / capability
+     - Be SHORT and GENERIC
+     - Be parameter-free
+   - It MUST NOT include:
+     - file paths
+     - directory names
+     - years, dates, regions
+     - dataset names
+     - variable names
+   - Think of it as:
+     "What does the tool DO?" (not "what data does it use")
+
+--------------------------------------------------
 CURRENT EXECUTION STATE (FROM WORKING MEMORY)
 --------------------------------------------------
 
@@ -223,20 +278,11 @@ GENERAL RE-PLANNING RULES (ALIGNED WITH DECOMPOSE)
      the data artifact produced by:
        - either a previously completed task, or
        - the immediately preceding re-planned step.
-   - Examples:
-     - "use the existing NDVI rasters"
-     - "based on the annual mean NDVI values"
 
 3. **Remote Sensing Logic**
    - The workflow order MUST still follow standard remote sensing logic.
    - You cannot recompute indices that already exist.
    - You cannot analyze trends before required aggregates exist.
-
-4. **Raster-to-Scalar Rule**
-   - If the remaining analysis requires numeric values:
-     - You MUST include an explicit aggregation step
-       using a valid tool.
-     - Do NOT assume raster values are already numeric.
 
 --------------------------------------------------
 RE-PLANNING OBJECTIVE
@@ -258,6 +304,13 @@ OUTPUT REQUIREMENT
 
 Return ONLY a JSON list of objects (the new sub-tasks).
 [
-    {{ "step": 1, "action": "get file", "query": "get file from ... " }}
+    {{ "step": 1, 
+        "action": "get file", 
+        "query": "get file from ... ",
+        "tool_search": "inspect the dataset directory to discover available data files" }},
+    {{ "step": 2, 
+        "action": "calculate", 
+        "query": "calculate absolute ...", 
+        "tool_search": "Compute the absolute difference between two numbers." }},
 ]
 """

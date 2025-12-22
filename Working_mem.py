@@ -51,13 +51,12 @@ class WorkingMemory:
     # ---------- 给 LLM 的视图 ----------
 
     def get_prompt_view(self) -> str:
-        """给 Planner / Tool Selector / RePlanner 使用的状态快照"""
+
         view = {
             "goal": self.original_query,
             "current_task": self.current_task,
             "finished_tasks": self.finished_tasks,
-            "available_artifacts": list(self.artifacts.keys()),
-            "recent_steps": self.recent_steps[-3:]
+            "tool_context": self.tool_context,
         }
         return json.dumps(view, ensure_ascii=False, indent=2)
 
