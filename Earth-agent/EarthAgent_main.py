@@ -91,7 +91,7 @@ async def main():
         else:
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
-    agent = SGCAgent(initial_model="Qwen/Qwen3-235B-A22B-Instruct-2507")
+    agent = SGCAgent(initial_model="qwen3-max")
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
@@ -102,14 +102,8 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    # 这里示例只跑第一个问题
-    sample = samples[50]
+    sample = samples[100]
     user_query = build_prompt(sample)
-
-    print("\n================ PROMPT ================")
-    print(user_query)
-    print("========================================\n")
-
     try:
         result = await agent.run(user_query)
 
@@ -121,6 +115,26 @@ async def main():
         print(f"[!] Agent execution failed: {e}")
         import traceback
         traceback.print_exc()
+
+
+    # for sample in samples:
+    #     user_query = build_prompt(sample)
+    #
+    #     # print("\n================ PROMPT ================")
+    #     # print(user_query)
+    #     # print("========================================\n")
+    #
+    #     try:
+    #         result = await agent.run(user_query)
+    #
+    #         print("\n================ RESULT ================")
+    #         print(result)
+    #         print("========================================")
+    #
+    #     except Exception as e:
+    #         print(f"[!] Agent execution failed: {e}")
+    #         import traceback
+    #         traceback.print_exc()
 
 
 if __name__ == "__main__":
