@@ -221,7 +221,7 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             print("[*] Reading trajectory from file and updating graph...")
-            trajectories = self.load_trajectory_from_file(trajectory_file_path, 48)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 248)
             print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
@@ -566,7 +566,7 @@ class SGCAgent(BaseAgent):
 
                 candidates = self.retriever.search(
                     search_vec,
-                    top_k=5,
+                    top_k=10,
                     pre_tool=prev_tool_id
                 )
 
