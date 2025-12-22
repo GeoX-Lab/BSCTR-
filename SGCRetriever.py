@@ -5,7 +5,7 @@ from collections import defaultdict
 
 class SGCRetriever:
 
-    def __init__(self, graph_manager, tool_names, raw_embeddings, alpha=0.2):
+    def __init__(self, graph_manager, tool_names, raw_embeddings, alpha=0.3):
         """
         graph_manager: GraphManager 实例
         raw_embeddings: (N, D)
