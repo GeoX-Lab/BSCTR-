@@ -32,9 +32,8 @@ class SGCRetriever:
 
         return F.normalize(z, p=2, dim=1)
 
-    def search(self, query_vec, top_k=10, conflict_threshold=0.1, avoid_names=None, pre_tool=None):
+    def search(self, query_vec, top_k=10, conflict_threshold=0.1, pre_tool=None):
 
-        avoid_names = avoid_names or []
         query_vec = F.normalize(query_vec, p=2, dim=1)
 
         z = self.compute_sgc_embeddings()
@@ -51,15 +50,6 @@ class SGCRetriever:
         w_c = 0.3 if pre_tool is not None else 0.0
 
         scores = w_q * sim_query + w_c * sim_pre_tool
-
-        if avoid_names:
-            for bad_name in avoid_names:
-                try:
-                    bad_idx = self.tool_names.index(bad_name)
-                    scores[bad_idx] = -float('inf')
-
-                except ValueError:
-                    pass
 
         top_scores, top_idx = torch.topk(scores, k=top_k)
 
