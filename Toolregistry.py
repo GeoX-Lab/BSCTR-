@@ -94,7 +94,7 @@ class ToolRegistry:
             "required": required
         }
 
-    def extract_short_description(raw_desc: str) -> str:
+    def extract_short_description(self, raw_desc: str) -> str:
         """
         清理 mcp 数据，提取干净的工具 description
         """
