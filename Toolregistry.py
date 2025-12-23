@@ -93,6 +93,27 @@ class ToolRegistry:
             "properties": properties,
             "required": required
         }
+
+    def extract_short_description(raw_desc: str) -> str:
+        """
+        清理 mcp 数据，提取干净的工具 description
+        """
+        if not raw_desc:
+            return ""
+
+        # 删除空格和换行符，处理成一个单一文本块
+        cleaned_desc = raw_desc.strip().replace("\n", " ").replace("\r", "")
+
+        # 找到 Parameters 之前的部分
+        param_index = cleaned_desc.lower().find("parameters")
+
+        if param_index != -1:
+            # 如果找到了 "parameters"，则截取其之前的部分
+            return cleaned_desc[:param_index].strip()
+
+        # 如果找不到 "parameters"，返回整个描述（处理没有 parameters 的情况）
+        return cleaned_desc
+
     def load_from_fastmcp(self, mcp: FastMCP):
         """
         解析 FastMCP 对象，将所有 @mcp.tool 注册到当前 Registry。
@@ -113,9 +134,9 @@ class ToolRegistry:
                 continue
 
             inferred_parameters = self._infer_parameters_from_callable(tool_callable)
-
+            raw_desc = getattr(tool_obj, "description", "") or ""
             meta = {
-                "description": getattr(tool_obj, "description", "") or "",
+                "description": self.extract_short_description(raw_desc),
                 "parameters": inferred_parameters,
                 "source": "fastmcp",
             }
