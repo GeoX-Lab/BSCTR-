@@ -94,40 +94,41 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    sample = samples[99]
-    user_query = build_prompt(sample)
-    choices = sample.get("choices")
-    try:
-        result = await agent.run(user_query, choices)
-
-        print("\n================ RESULT ================")
-        print(result)
-        print("========================================")
-
-    except Exception as e:
-        print(f"[!] Agent execution failed: {e}")
-        import traceback
-        traceback.print_exc()
-
-
-    # for sample in samples:
-    #     user_query = build_prompt(sample)
+    # sample = samples[99]
+    # user_query = build_prompt(sample)
+    # choices = sample.get("choices")
+    # try:
+    #     result = await agent.run(user_query, choices)
     #
-    #     # print("\n================ PROMPT ================")
-    #     # print(user_query)
-    #     # print("========================================\n")
+    #     print("\n================ RESULT ================")
+    #     print(result)
+    #     print("========================================")
     #
-    #     try:
-    #         result = await agent.run(user_query)
-    #
-    #         print("\n================ RESULT ================")
-    #         print(result)
-    #         print("========================================")
-    #
-    #     except Exception as e:
-    #         print(f"[!] Agent execution failed: {e}")
-    #         import traceback
-    #         traceback.print_exc()
+    # except Exception as e:
+    #     print(f"[!] Agent execution failed: {e}")
+    #     import traceback
+    #     traceback.print_exc()
+
+
+    for sample in samples:
+        user_query = build_prompt(sample)
+        choices = sample.get("choices")
+
+        # print("\n================ PROMPT ================")
+        # print(user_query)
+        # print("========================================\n")
+
+        try:
+            result = await agent.run(user_query,choices)
+
+            print("\n================ RESULT ================")
+            print(result)
+            print("========================================")
+
+        except Exception as e:
+            print(f"[!] Agent execution failed: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
