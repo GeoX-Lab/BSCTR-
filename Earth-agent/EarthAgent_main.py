@@ -63,15 +63,7 @@ You must inspect this data using appropriate tools before reasoning.""")
             label = chr(ord("A") + i)
             choice_lines.append(f"{label}. {c}")
 
-        blocks.append(
-            "### Answer Choices\n"
-            + "\n".join(choice_lines)
-            + "\n\nPlease select the **single best answer** "
-              "and clearly state the option letter (A/B/C/D) in your final answer."
-        )
-
     return "\n\n".join(blocks).strip()
-
 async def main():
     print(">>> Initializing System...")
     registry = ToolRegistry()
@@ -102,39 +94,39 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    # sample = samples[100]
-    # user_query = build_prompt(sample)
-    # try:
-    #     result = await agent.run(user_query)
+    sample = samples[100]
+    user_query = build_prompt(sample)
+    try:
+        result = await agent.run(user_query)
+
+        print("\n================ RESULT ================")
+        print(result)
+        print("========================================")
+
+    except Exception as e:
+        print(f"[!] Agent execution failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+    # for sample in samples:
+    #     user_query = build_prompt(sample)
     #
-    #     print("\n================ RESULT ================")
-    #     print(result)
-    #     print("========================================")
+    #     # print("\n================ PROMPT ================")
+    #     # print(user_query)
+    #     # print("========================================\n")
     #
-    # except Exception as e:
-    #     print(f"[!] Agent execution failed: {e}")
-    #     import traceback
-    #     traceback.print_exc()
-
-
-    for sample in samples:
-        user_query = build_prompt(sample)
-
-        # print("\n================ PROMPT ================")
-        # print(user_query)
-        # print("========================================\n")
-
-        try:
-            result = await agent.run(user_query)
-
-            print("\n================ RESULT ================")
-            print(result)
-            print("========================================")
-
-        except Exception as e:
-            print(f"[!] Agent execution failed: {e}")
-            import traceback
-            traceback.print_exc()
+    #     try:
+    #         result = await agent.run(user_query)
+    #
+    #         print("\n================ RESULT ================")
+    #         print(result)
+    #         print("========================================")
+    #
+    #     except Exception as e:
+    #         print(f"[!] Agent execution failed: {e}")
+    #         import traceback
+    #         traceback.print_exc()
 
 
 if __name__ == "__main__":
