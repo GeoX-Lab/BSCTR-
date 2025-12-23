@@ -482,14 +482,12 @@ class SGCAgent(BaseAgent):
 
         return verification
 
-    async def re_plan(self, failure_reason: str) -> List[Dict]:
-        replan_context = self.working_memory.get_replan_context()
+    async def re_plan(self) -> List[Dict]:
+        tool_context = self.working_memory.get_prompt_view()
         prompt = REPLAN_PROMPT.format(
             original_query=self.working_memory.original_query,
             finished_tasks=self.working_memory.finished_tasks,
-            failed_steps=self.working_memory.recent_steps[-1],
-            failure_reason=failure_reason,
-            working_memory_outputs=replan_context
+            tool_context=tool_context
         )
         resp = await self._llm_generate_text(prompt)
         parsed = self._parse_json(resp)
@@ -699,14 +697,14 @@ class SGCAgent(BaseAgent):
                     break
 
                 # 获取失败原因，用于 Prompt
-                fail_reason = "Unknown"
-                if last_verification_error:
-                    fail_reason = last_verification_error.get('reason', 'Unknown')
-
-                failure_reason_str = f"Step '{current_task['query']}' failed. Last error: {fail_reason}"
+                # fail_reason = "Unknown"
+                # if last_verification_error:
+                #     fail_reason = last_verification_error.get('reason', 'Unknown')
+                #
+                # failure_reason_str = f"Step '{current_task['query']}' failed. Last error: {fail_reason}"
 
                 # 调用重规划
-                new_sub_tasks = await self.re_plan(failure_reason_str)
+                new_sub_tasks = await self.re_plan()
 
                 if new_sub_tasks:
                     print(f"    [Re-plan] Generated {len(new_sub_tasks)} new steps.")
