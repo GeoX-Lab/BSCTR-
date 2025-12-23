@@ -176,16 +176,57 @@ Return ONLY a JSON object:
 
 REPLAN_PROMPT = """
 [Phase: Strategic Re-planning]
-You are performing **Strategic Re-planning** after a critical failure.
-This phase follows the SAME planning principles, constraints, and rules
-as the original **Task Planning (DECOMPOSE)** phase.
-
-You must generate a **new, strictly ordered sequence of atomic and executable sub-tasks**
-that continue from the CURRENT EXECUTION STATE, NOT from the beginning.
+You are the **Senior Remote Sensing Planning Agent**. 
+Your goal is to dynamically adjust the execution plan based on the user's original request and the execution feedback from previous steps.
 
 Our system uses a **1-hop SGC (Graph Network)** for tool retrieval.
 Each sub-task MUST correspond to a **real operation** that can be executed
 by an available tool.
+--------------------------------------------------
+RE-PLANNING OBJECTIVE
+--------------------------------------------------
+1. **Analyze Context**: specificially examine the **Original User Goal**, **Successfully Completed Tasks**, and the latest **Tool Feedback** to identify why the task is incomplete or what error occurred.
+2. **Gap Analysis**: Determine the missing steps required to bridge the gap between the current state and the final goal.
+3. **Generate Plan**: Create a sequence of *new* steps only. 
+   - If the previous result is valid, build upon it.
+   - If the previous result was an error, propose a corrective step.
+--------------------------------------------------
+CURRENT EXECUTION STATE (FROM WORKING MEMORY)
+--------------------------------------------------
+### Original User Goal
+"{original_query}"
+
+### Successfully Completed Tasks
+{finished_tasks}
+
+- These steps are COMPLETE.
+- Their outputs already exist in the system.
+- **DO NOT** repeat these steps. Assume these results are ready for reuse.
+
+### Tool Feedback 
+{tool_context}
+
+--------------------------------------------------
+IMPORTANT: TOOL-AWARE PLANNING RULES (STILL APPLY)
+--------------------------------------------------
+
+You are operating under the SAME execution constraints as in Task Planning:
+
+1. **File / Dataset Inspection Rule**
+   - Only introduce an "inspect" step (calling **get_filelist**) IF and ONLY IF:
+     - the required files are NOT already available in Working Memory.
+   - You are STRICTLY FORBIDDEN from re-inspecting datasets
+     whose results already exist.
+
+2. **NO EXPLICIT LOAD STEP (CRITICAL)**
+   - You MUST NOT introduce any "load" step.
+   - Existing file paths or file lists from Working Memory
+     MUST be passed DIRECTLY into calculation steps.
+
+3. **Processing Rule**
+   - Any calculation step MUST explicitly reference
+     existing file paths, file lists, or outputs
+     produced by completed tasks.
 
 --------------------------------------------------
 CRITICAL: TOOL-AWARE OUTPUT FORMAT
@@ -217,86 +258,6 @@ For EACH sub-task, you MUST output **TWO DIFFERENT DESCRIPTIONS**:
      - variable names
    - Think of it as:
      "What does the tool DO?" (not "what data does it use")
-
---------------------------------------------------
-CURRENT EXECUTION STATE (FROM WORKING MEMORY)
---------------------------------------------------
-
-### Original User Goal
-"{original_query}"
-
-### Successfully Completed Tasks (FINAL & REUSABLE)
-{finished_tasks}
-
-- These steps are VALID and COMPLETE.
-- Their outputs already exist in the system.
-- You MUST assume these results can be directly reused.
-
-### Available Data Artifacts (IMPORTANT)
-The following intermediate outputs are already stored in Working Memory
-and MUST be reused instead of recomputed:
-{working_memory_outputs}
-
-### Failed Steps
-{failed_steps}
-
-### Failure Reason
-{failure_reason}
-
---------------------------------------------------
-IMPORTANT: TOOL-AWARE PLANNING RULES (STILL APPLY)
---------------------------------------------------
-
-You are operating under the SAME execution constraints as in Task Planning:
-
-1. **File / Dataset Inspection Rule**
-   - Only introduce an "inspect" step (calling **get_filelist**) IF and ONLY IF:
-     - the required files are NOT already available in Working Memory.
-   - You are STRICTLY FORBIDDEN from re-inspecting datasets
-     whose results already exist.
-
-2. **NO EXPLICIT LOAD STEP (CRITICAL)**
-   - You MUST NOT introduce any "load" step.
-   - Existing file paths or file lists from Working Memory
-     MUST be passed DIRECTLY into calculation steps.
-
-3. **Processing Rule**
-   - Any calculation step MUST explicitly reference
-     existing file paths, file lists, or outputs
-     produced by completed tasks.
-
---------------------------------------------------
-GENERAL RE-PLANNING RULES (ALIGNED WITH DECOMPOSE)
---------------------------------------------------
-
-1. **Atomic & Sequential**
-   - Each step performs exactly ONE action.
-   - Do NOT invent actions that do not correspond to real tools.
-
-2. **Explicit Data Flow**
-   - Each new step MUST explicitly reference
-     the data artifact produced by:
-       - either a previously completed task, or
-       - the immediately preceding re-planned step.
-
-3. **Remote Sensing Logic**
-   - The workflow order MUST still follow standard remote sensing logic.
-   - You cannot recompute indices that already exist.
-   - You cannot analyze trends before required aggregates exist.
-
---------------------------------------------------
-RE-PLANNING OBJECTIVE
---------------------------------------------------
-
-Your task is to:
-- Continue from the CURRENT STATE
-- Repair the failed part of the workflow
-- Reach the FINAL GOAL with the MINIMUM necessary new steps
-
-You are STRICTLY FORBIDDEN from:
-- Restarting the workflow
-- Repeating completed steps
-- Ignoring existing data artifacts
 
 --------------------------------------------------
 OUTPUT REQUIREMENT
