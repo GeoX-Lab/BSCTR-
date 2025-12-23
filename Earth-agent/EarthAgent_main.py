@@ -94,10 +94,11 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    sample = samples[100]
+    sample = samples[99]
     user_query = build_prompt(sample)
+    choices = sample.get("choices")
     try:
-        result = await agent.run(user_query)
+        result = await agent.run(user_query, choices)
 
         print("\n================ RESULT ================")
         print(result)
