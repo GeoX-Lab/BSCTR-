@@ -14,16 +14,12 @@ class WorkingMemory:
 
     # === 工具执行上下文 ===
     tool_context: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    # tool_name -> {last_args, last_result_summary, success}
 
-    # === 中间产物 ===
+    # === 智能体中间产物 ===
     artifacts: Dict[str, Any] = field(default_factory=dict)
-    # e.g. {"ndvi_raster": "...", "roi_mask": "..."}
 
-    # === 最近执行记录（压缩态）===
+    # === 最近执行记录===
     recent_steps: List[Dict[str, Any]] = field(default_factory=list)
-
-    # ---------- 更新接口 ----------
 
     def start_task(self, task_query: str):
         self.current_task = task_query
@@ -59,3 +55,26 @@ class WorkingMemory:
             "tool_context": self.tool_context,
         }
         return json.dumps(view, ensure_ascii=False, indent=2)
+
+    def get_error_history(self, task_query: str) -> str:
+        """
+        从 recent_steps 中筛选出属于当前 task_query 的失败记录，
+        并格式化为字符串，用于 Prompt 提示。
+        """
+        relevant_failures = [
+            step for step in self.recent_steps
+            if step.get("status") == "FAIL" and step.get("current_task") == task_query
+        ]
+
+        if not relevant_failures:
+            return "None (No previous failures for this step)."
+
+        history_lines = []
+        for i, f in enumerate(relevant_failures):
+            history_lines.append(f"--- Failure Record {i + 1} ---")
+            history_lines.append(f"Target Tool: {f.get('tool')}")
+            history_lines.append(f"Error Type:  {f.get('error_type')}")
+            history_lines.append(f"Detailed Reason: {f.get('reason')}")
+            history_lines.append("")
+
+        return "\n".join(history_lines).strip()
