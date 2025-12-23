@@ -126,11 +126,14 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 ### 3. The answer of last tool_call
 {tool_context}
 
+### 4. Previous Failures (CRITICAL)
+{error_history}
+
 ### Guidelines for Remote Sensing Arguments
-1. **Selection**: Choose the tool whose description and schema best match the task. If a tool produces a result like "Result saved at /path/to/file", use the full path "/path/to/file" in subsequent calls.
-2. **Data Flow**: If the tool requires an input file (e.g., `image_path`, `raster_path`), you MUST extract the actual file path from **The answer of last tool_call**.
-   - Look for file paths ending in `.tif`, `.tiff`, `.jp2`, `.shp`, or Product IDs.
-3. **Spatial & Temporal Formatting**: Ensure that all dates follow `YYYY-MM-DD` format and that Bounding Boxes are correctly formatted (e.g., `[min_lon, min_lat, max_lon, max_lat]`).
+1. **Avoid Repeating Errors**: Check the "Previous Failures" section carefully. If a tool failed previously (e.g., ArgumentError), you **MUST** correct the argument type or value in this attempt.
+   - Example: If the error says "type mismatch", check if you sent a string (e.g., "290") where a number (e.g., 290) was expected.
+2. **Selection**: Choose the tool whose description and schema best match the task.
+3. **Data Flow**: If the tool requires an input file, extract the actual file path from **The answer of last tool_call**.
 4. **Schema Adherence**: Never invent parameters. Only use keys defined in the **Tool Schema**.
 
 ### Output Requirement
