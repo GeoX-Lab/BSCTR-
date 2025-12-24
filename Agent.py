@@ -116,7 +116,7 @@ class SGCAgent(BaseAgent):
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
         # TODO 切换输出路径
-        super().__init__(initial_model, SYSTEM_PROMPT, "./outputs/qwen3-max_outputs.jsonl")
+        super().__init__(initial_model, SYSTEM_PROMPT, "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
 
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")
@@ -125,7 +125,7 @@ class SGCAgent(BaseAgent):
         self.ollama_config = {}
         self.yaml_path = "/media/csudxy0218/ZL/AgentToolmem/config.yaml"
         try:
-            with open(self.output_dir, "r", encoding="utf-8") as f:
+            with open(self.yaml_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
                 self.ollama_config = cfg.get("ollama", {})
         except Exception as e:
@@ -580,7 +580,9 @@ class SGCAgent(BaseAgent):
         self.history = []
         self.tool_set = OrderedDict()
         self.attempt_tool_chain = []
-        trajectory_path = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/tool_chain.json"
+
+        # TODO 历史工具路径
+        trajectory_path = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/GT/tool_chain.json"
 
         if self.retriever is None or self.graph_manager is None:
             if trajectory_path is None:
