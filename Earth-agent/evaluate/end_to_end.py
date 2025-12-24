@@ -219,7 +219,7 @@ def main():
     with open(output_result_file, 'w', encoding='utf-8') as f:
         json.dump(final_output, f, ensure_ascii=False, indent=2)
 
-    print(f"\n✅ 测试完成！详细结果已保存至: {output_result_file}")
+    print(f"\n测试完成！详细结果已保存至: {output_result_file}")
 
 
 if __name__ == "__main__":
