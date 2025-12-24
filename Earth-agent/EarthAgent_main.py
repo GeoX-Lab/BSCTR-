@@ -2,7 +2,7 @@ import asyncio
 import json
 from Agent import SGCAgent
 from Toolregistry import ToolRegistry
-import Analysis, Index, Inversion, Perception, Statistics
+from tools import Analysis, Index, Inversion, Perception, Statistics
 
 def load_questions(test_json_path: str = "./question.json"):
     """Load evaluation questions (EarthAgent official style)"""
