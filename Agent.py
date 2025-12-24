@@ -150,7 +150,7 @@ class SGCAgent(BaseAgent):
             "final_result": final_result,
             "history": list(self.history),
         }
-        with open("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/benchmark/data/outputs.jsonl", "a", encoding="utf-8") as f:
+        with open("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/outputs.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         print(f"[*] Task archived to {self.output_dir}")
 
