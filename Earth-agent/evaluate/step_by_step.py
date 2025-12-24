@@ -68,7 +68,7 @@ def calculate_accuracy(ground_truth_data: List[Dict], predicted_data: List[Dict]
     }
 
     for question_index, gt_item in gt_dict.items():
-        # ✅ FIX: Handle the case where final_answer can be null/None
+        # FIX: Handle the case where final_answer can be null/None
         gt_answer = (gt_item.get("final_answer") or "").strip()  # <--- 修复点 (FIXED HERE)
 
         if question_index not in pred_dict:
@@ -186,7 +186,7 @@ def main():
     model_dirs = find_model_directories(SEARCH_DIR)
 
     if not model_dirs:
-        print("❌ 未找到包含 'results_summary_polished.json' 的子文件夹。")
+        print("未找到包含 'results_summary_polished.json' 的子文件夹。")
         return
 
     print(f"发现 {len(model_dirs)} 个模型目录待评估...")
