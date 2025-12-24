@@ -115,15 +115,17 @@ class SGCAgent(BaseAgent):
                  initial_model: str,
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
-        super().__init__(initial_model, SYSTEM_PROMPT, "./outputs/outputs.jsonl")
+        # TODO 切换输出路径
+        super().__init__(initial_model, SYSTEM_PROMPT, "./outputs/qwen3-max_outputs.jsonl")
 
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")
 
         self.working_memory = None
         self.ollama_config = {}
+        self.yaml_path = "/media/csudxy0218/ZL/AgentToolmem/config.yaml"
         try:
-            with open("/media/csudxy0218/ZL/AgentToolmem/config.yaml", "r", encoding="utf-8") as f:
+            with open(self.output_dir, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
                 self.ollama_config = cfg.get("ollama", {})
         except Exception as e:
@@ -131,7 +133,7 @@ class SGCAgent(BaseAgent):
 
         # 2. SGC 系统组件占位
         self.tool_names = []
-        self.tool_map = {}  # name -> id
+        self.tool_map = {}
         self.graph_manager = None
         self.retriever = None
         self.raw_embeddings = None
@@ -150,7 +152,7 @@ class SGCAgent(BaseAgent):
             "final_result": final_result,
             "history": list(self.history),
         }
-        with open("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/outputs.jsonl", "a", encoding="utf-8") as f:
+        with open(self.output_dir, "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         print(f"[*] Task archived to {self.output_dir}")
 
