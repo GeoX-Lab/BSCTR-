@@ -385,7 +385,8 @@ def calculate_bbox_area(bboxes, gsd=None):
 def get_model_output(model_name: str, input_image_path: str, **args):
     import pandas as pd
 
-    results = pd.read_csv("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/model_results.csv", sep=';')
+    #TODO 切换路径
+    results = pd.read_csv("./tools/model_results.csv", sep=';')
     result = None
     try:
         # classification
