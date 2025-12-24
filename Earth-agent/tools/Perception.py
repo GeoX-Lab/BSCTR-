@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 from fastmcp import FastMCP
 
-from utils import read_image, read_image_uint8
+from tools.utils import read_image, read_image_uint8
 
 
 mcp = FastMCP()
@@ -386,7 +386,7 @@ def get_model_output(model_name: str, input_image_path: str, **args):
     import pandas as pd
 
     #TODO 切换路径
-    results = pd.read_csv("./tools/model_results.csv", sep=';')
+    results = pd.read_csv("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/tools/model_results.csv", sep=';')
     result = None
     try:
         # classification

@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastmcp import FastMCP
-from utils import read_image
+from tools.utils import read_image
 
 mcp = FastMCP()
 
