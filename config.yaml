@@ -18,6 +18,16 @@ Qwen/Qwen3-235B-A22B-Instruct-2507:
     temperature: 0.0
     stream: true
 
+deepseek-v3.2:
+  use_responses_api: true
+  client_kwargs:
+    api_key: "sk-cb584345008f4254b76f11ee6278b264"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  generation:
+    max_tokens: 16000
+    temperature: 0.0
+    stream: true
+
 ollama:
   embedding_url: "http://localhost:11434/api/embeddings"
   model_name: "nomic-embed-text:latest"

@@ -9,7 +9,7 @@ from typing import Dict, List
 # 1. 设置标准答案路径
 GROUND_TRUTH_FILE = "./extracted_tool_calls_GT.json"
 # 2. 设置你刚刚转换生成的模型输出目录
-MODEL_OUTPUT_DIR = "qwen3-max"
+MODEL_OUTPUT_DIR = "deepseek"
 
 
 # ===========================================

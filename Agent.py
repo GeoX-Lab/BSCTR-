@@ -116,7 +116,7 @@ class SGCAgent(BaseAgent):
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
         # TODO 切换输出路径
-        super().__init__(initial_model, SYSTEM_PROMPT, "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
+        super().__init__(initial_model, SYSTEM_PROMPT, "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/deepseek/deepseek_outputs.jsonl")
 
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")

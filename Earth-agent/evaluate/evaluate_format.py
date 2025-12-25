@@ -120,7 +120,7 @@ def convert_jsonl_to_eval_format(input_file, output_dir):
 # 这里的 input_content 只是模拟你的输入文件，实际使用时请替换为真实文件路径
 if __name__ == "__main__":
     # 配置你的文件路径
-    INPUT_FILE = "qwen3-max/qwen3-max_outputs.jsonl"  # 你的原始 jsonl 文件路径
-    OUTPUT_DIR = "qwen3-max"  # 你希望输出的目录
+    INPUT_FILE = "deepseek/deepseek_outputs.jsonl"  # 你的原始 jsonl 文件路径
+    OUTPUT_DIR = "deepseek"  # 你希望输出的目录
     # 运行转换
     convert_jsonl_to_eval_format(INPUT_FILE, OUTPUT_DIR)

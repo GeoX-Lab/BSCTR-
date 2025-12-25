@@ -84,7 +84,7 @@ async def main():
         else:
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
-    agent = SGCAgent(initial_model="Qwen/Qwen3-235B-A22B-Instruct-2507")
+    agent = SGCAgent(initial_model="deepseek-v3.2")
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
