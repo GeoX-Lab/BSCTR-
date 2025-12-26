@@ -163,6 +163,13 @@ You have executed a tool. Now verify if it succeeded.
 - **Arguments**: {tool_args}
 - **Result Output**: {truncated_result}
 
+### Priority Directive (CRITICAL)
+1. **Trust Tool Output**: The user's query may contain inaccurate dates (e.g., asking for 2022 data when only 2021 exists).
+2. **Ignore Output Truncation/Display Limits**: 
+   - The "Result Output" shown above might be truncated (cut off) due to length limits (e.g., ending mid-string or with "...").
+   - **Do NOT fail** verification just because the text is cut off.
+   - If the **visible part** of the output shows signs of success (e.g., at least one valid file path, a success message, or valid numbers), treat the entire execution as **SUCCESS**.
+
 ### Verification Logic:
 1. **Success**: The tool produced a valid output (e.g., a new file path, a specific value, or a successful status code).
 2. **Failure**: Python exceptions, empty outputs, or "file not found" errors.
