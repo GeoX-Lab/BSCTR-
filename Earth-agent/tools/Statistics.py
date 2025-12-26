@@ -1,14 +1,122 @@
-import argparse
-
+import os
+import functools
 from pathlib import Path
 from fastmcp import FastMCP
-
 from tools.utils import read_image, read_image_uint8
 
-mcp = FastMCP()
-TEMP_DIR = Path("./tools_outputs")
-TEMP_DIR.mkdir(parents=True, exist_ok=True)
+# 1. 定义统一的输出目录 (tools_outputs)
+OUTPUT_DIR_NAME = "tools_outputs"
+# 动态获取项目根目录下的 tools_outputs 路径
+_project_root = Path(__file__).resolve().parent.parent
+_base_output_path = _project_root / OUTPUT_DIR_NAME
+_base_output_path.mkdir(parents=True, exist_ok=True)
 
+
+class SmartWorkspace:
+    """
+    智能路径对象：解决工具内部 `TEMP_DIR / path` 的拼接问题
+    """
+
+    def __init__(self, base_path):
+        self.base = base_path
+
+    def __truediv__(self, other):
+        p = Path(other)
+        # 如果是绝对路径，直接返回
+        if p.is_absolute(): return p
+        # 如果路径已经包含了 tools_outputs，去掉第一层，防止双重拼接
+        if len(p.parts) > 0 and p.parts[0] == self.base.name:
+            return self.base / Path(*p.parts[1:])
+        return self.base / p
+
+    def __getattr__(self, name):
+        # 转发 mkdir, exists, parent 等方法调用
+        return getattr(self.base, name)
+
+    def __str__(self):
+        return str(self.base)
+
+
+# 替换原始的 TEMP_DIR
+TEMP_DIR = SmartWorkspace(_base_output_path)
+
+
+def auto_fix_input_path(path_str):
+    """
+    参数修复逻辑：Agent 传 'benchmark/...' -> 自动改成 'tools_outputs/benchmark/...'
+    """
+    if not isinstance(path_str, str):
+        return path_str
+
+    # 构造假设路径：如果该文件在 outputs 里存在
+    potential_path = _base_output_path / path_str
+
+    if potential_path.exists():
+        # 返回相对路径（tools_outputs/xxx），配合 SmartWorkspace 使用更安全
+        fixed_path = os.path.join(OUTPUT_DIR_NAME, path_str)
+        print(f"[Path Auto-Fix] Input redirected: '{path_str}' -> '{fixed_path}'")
+        return fixed_path
+
+    return path_str
+
+
+class InterceptedMCP:
+    """
+    MCP 代理类：劫持工具注册，植入参数修复逻辑
+    """
+
+    def __init__(self):
+        self._real_mcp = FastMCP()
+
+    def tool(self, *args, **kwargs):
+        def decorator(func):
+            # ❗ 关键：使用 wraps 保留原始函数的签名，确保 ToolRegistry 能生成正确的 Schema
+            @functools.wraps(func)
+            def wrapper(*f_args, **f_kwargs):
+                # --- 1. 拦截并修复位置参数 ---
+                new_args = []
+                for arg in f_args:
+                    new_args.append(auto_fix_input_path(arg))
+
+                # --- 2. 拦截并修复关键字参数 ---
+                new_kwargs = {}
+                for k, v in f_kwargs.items():
+                    # 简单判断：如果是字符串参数，尝试修复
+                    if isinstance(v, str):
+                        new_kwargs[k] = auto_fix_input_path(v)
+                    else:
+                        new_kwargs[k] = v
+
+                # --- 3. 执行工具逻辑 ---
+                result = func(*new_args, **new_kwargs)
+
+                # --- 4. (可选) 修复返回值 ---
+                # 如果工具返回了一个路径，且该文件在 outputs 里，强制加上前缀返回
+                if isinstance(result, str):
+                    try:
+                        res_path = Path(result)
+                        # 如果返回的是 benchmark/... 且文件在 tools_outputs/benchmark/...
+                        if not res_path.is_absolute() and (_base_output_path / res_path).exists():
+                            fixed_result = os.path.join(OUTPUT_DIR_NAME, result)
+                            return fixed_result
+                    except:
+                        pass
+
+                return result
+
+            # 将包装后的 wrapper 注册给真正的 MCP
+            return self._real_mcp.tool(*args, **kwargs)(wrapper)
+
+        return decorator
+
+    def __getattr__(self, name):
+        # 转发 _tool_manager 等属性给真正的 MCP
+        # 这使得 ToolRegistry 能正常读取 mcp._tool_manager
+        return getattr(self._real_mcp, name)
+
+
+# 替换原始的 mcp
+mcp = InterceptedMCP()
 
 @mcp.tool(description='''
 Description:
