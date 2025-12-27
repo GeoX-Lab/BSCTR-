@@ -84,7 +84,8 @@ async def main():
         else:
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
-    agent = SGCAgent(initial_model="deepseek-v3.2")
+    # TODO 初始化智能体
+    agent = SGCAgent(initial_model="qwen3-max", output_dir="/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
@@ -95,7 +96,7 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    # sample = samples[99]
+    # sample = samples[7]
     # user_query = build_prompt(sample)
     # choices = sample.get("choices")
     # try:
@@ -110,8 +111,8 @@ async def main():
     #     import traceback
     #     traceback.print_exc()
 
-
-    for sample in samples:
+    samples_half = samples[:123]
+    for sample in samples_half:
         user_query = build_prompt(sample)
         choices = sample.get("choices")
 

@@ -175,8 +175,8 @@ def convert_jsonl_to_dataset(input_path, output_path):
     print("转换完成！")
 if __name__ == "__main__":
     # === 配置输入输出路径 ===
-    input_file = "./qwen3-max/qwen3-max_outputs.jsonl"  # 你的原始 jsonl 文件路径
-    output_file = "./qwen3-max/qwen3-max.json"  # 你想保存的 json 文件路径
+    input_file = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl"  # 你的原始 jsonl 文件路径
+    output_file = ("./qwen3-max/qwen3-max.json")  # 你想保存的 json 文件路径
     # ========================
 
     convert_jsonl_to_dataset(input_file, output_file)
