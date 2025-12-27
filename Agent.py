@@ -113,11 +113,11 @@ class BaseAgent:
 class SGCAgent(BaseAgent):
     def __init__(self,
                  initial_model: str,
+                 output_dir: str,
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
-        # TODO 切换输出路径
-        super().__init__(initial_model, SYSTEM_PROMPT, "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/deepseek/deepseek_outputs.jsonl")
-
+        self.output_dir = output_dir
+        super().__init__(initial_model, SYSTEM_PROMPT, self.output_dir)
         self.device = device
         print(f"[*] SGCAgent initialized on device: {self.device}")
 
@@ -227,7 +227,7 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             # print("[*] Reading trajectory from file and updating graph...")
-            trajectories = self.load_trajectory_from_file(trajectory_file_path, 248)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 50)
             # print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
@@ -427,7 +427,7 @@ class SGCAgent(BaseAgent):
 
         self.tool_set = new_tool_pool
 
-    def build_tool_pool(self, tasks: List[Dict], top_k: int = 10):
+    def build_tool_pool(self, tasks: List[Dict], top_k: int = 5):
         """
         对一批 tasks 执行检索，增量更新 self.tool_set（不包含 score）
         """
@@ -520,9 +520,20 @@ class SGCAgent(BaseAgent):
         return tool_calls
 
     async def verify(self, task_query: str, tool_name: str, args: Dict, result: str) -> Dict:
+        tool_info = self.tool_registry.get_tool(tool_name)
+
+        tool_doc_str = "Not available"
+        if tool_info:
+            meta = tool_info.get('meta', {})
+            desc = meta.get('description', 'No description provided.')
+            params = meta.get('parameters', {})
+
+            # 格式化为易读的文本
+            tool_doc_str = f"Description: {desc}\nParameters Schema: {json.dumps(params, indent=2)}"
         prompt = JUDGER_PROMPT.format(
             task_query=task_query,
             tool_name=tool_name,
+            tool_doc=tool_doc_str,
             tool_args=json.dumps(args),
             truncated_result=str(result)[:500]
         )
@@ -616,7 +627,7 @@ class SGCAgent(BaseAgent):
             print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
 
             step_success = False
-            local_retries = 2
+            local_retries = 3
             attempt = 0
 
             while attempt <= local_retries:
@@ -686,8 +697,9 @@ class SGCAgent(BaseAgent):
             if step_success:
                 print(f"   [Success] Step {task_idx + 1} completed.")
                 self.working_memory.finished_tasks.append(current_task['query'])
-                if task_idx == 0:
-                    self.update_tool_pool_with_children()
+                # TODO 更新子节点到工具池
+                # if task_idx == 0:
+                #     self.update_tool_pool_with_children()
                 task_idx += 1
             else:
                 # D. 任务失败，触发 Re_plan
