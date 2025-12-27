@@ -123,11 +123,20 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 ### 2. Candidate Tools
 {tools_info}
 
-### 3. The answer of last tool_call
+### 3. The answer of tool_call before
 {tool_context}
+- **Explicit Paths Only**: You MUST use the **exact, full file paths** returned by previous tools. 
+
 
 ### 4. Previous Failures (CRITICAL)
 {error_history}
+
+### 5. Parameter Precision & Data Types (CRITICAL)
+1. **Strict Data Types**: You **MUST** strictly adhere to the type defined in the tool schema.
+   - **List vs. String**: If a parameter requires a list/array (e.g., `image_paths`), you **MUST** provide a JSON list: `["file1.tif", "file2.tif"]`. **NEVER** provide a single comma-separated string (e.g., `"file1.tif,file2.tif"`).
+2. **Unit & Format Semantics**:
+   - **Percentage (0-100)**: If the parameter description implies a percentage (e.g., "cloud cover percentage", "confidence"), output **integer/float scaled to 100** (e.g., use `50` for 50%, NOT `0.5`).
+   - **Context Check**: Read the parameter description carefully to distinguish between the two.
 
 ### Guidelines for Remote Sensing Arguments
 1. **Avoid Repeating Errors**: Check the "Previous Failures" section carefully. If a tool failed previously (e.g., ArgumentError), you **MUST** correct the argument type or value in this attempt.
@@ -138,11 +147,13 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 
 ### File System & Path Management
 1. **Automated Workspace**: The system relies on a **"Smart Workspace"** mechanism. All file operations are automatically redirected to a secure directory (e.g., `tools_outputs/`).
-2. **Input/Output format**: 
-   - When generating file paths for tool arguments, **ALWAYS use relative paths** (e.g., `benchmark/data/question1/result.tif`).
-   - **DO NOT** attempt to guess absolute paths (e.g., `/tmp/...` or `/home/...`).
-   - **DO NOT** manually prepend `tools_outputs/` to your input arguments. The system does this for you.
-3. **Chain of Processing**: If a previous tool returns a path like `tools_outputs/file.tif`, you can pass this EXACT string to the next tool. The system will handle the path resolution automatically.
+### Path Generation Rules
+When defining `output_path`, you **MUST** mirror the directory structure of the input file:
+1. **Format**: `tools_outputs/` + [Input Directory Path] + [New Filename]
+2. **Do NOT flatten**: Never save directly to `tools_outputs/`.
+3. **Example**: 
+   - Input_dir: `benchmark/data/question5/`
+   - Output_dir: `tools_outputs/benchmark/data/question5/`
 
 ### Output Requirement
 Return **ONLY** a pure JSON object.
@@ -168,16 +179,19 @@ You have executed a tool. Now verify if it succeeded.
 ### Execution Context
 - **Goal**: {task_query}
 - **Tool**: {tool_name}
+- **Tool description**: {tool_doc}
 - **Arguments**: {tool_args}
 - **Result Output**: {truncated_result}
 
 ### Priority Directive (CRITICAL)
 1. **Trust Tool Output**: The user's query may contain inaccurate dates (e.g., asking for 2022 data when only 2021 exists).
-2. **Ignore Output Truncation/Display Limits**: 
+2. **Check Argument Validity**: Compare "Arguments" against "Tool description". 
+   - If the schema requires a list (array) but a string was passed, mark as **FAILURE** (ArgumentError).
+3. **Ignore Output Truncation/Display Limits**: 
    - The "Result Output" shown above might be truncated (cut off) due to length limits (e.g., ending mid-string or with "...").
    - **Do NOT fail** verification just because the text is cut off.
    - If the **visible part** of the output shows signs of success (e.g., at least one valid file path, a success message, or valid numbers), treat the entire execution as **SUCCESS**.
-3. **Ignore Path Prefix Mismatches**:
+4. **Ignore Path Prefix Mismatches**:
    - The system employs a path redirection layer. 
    - If you requested `benchmark/data/file.tif` but the tool returned `tools_outputs/benchmark/data/file.tif`, 
 
