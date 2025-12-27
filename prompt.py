@@ -136,6 +136,14 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 3. **Data Flow**: If the tool requires an input file, extract the actual file path from **The answer of last tool_call**.
 4. **Schema Adherence**: Never invent parameters. Only use keys defined in the **Tool Schema**.
 
+### File System & Path Management
+1. **Automated Workspace**: The system relies on a **"Smart Workspace"** mechanism. All file operations are automatically redirected to a secure directory (e.g., `tools_outputs/`).
+2. **Input/Output format**: 
+   - When generating file paths for tool arguments, **ALWAYS use relative paths** (e.g., `benchmark/data/question1/result.tif`).
+   - **DO NOT** attempt to guess absolute paths (e.g., `/tmp/...` or `/home/...`).
+   - **DO NOT** manually prepend `tools_outputs/` to your input arguments. The system does this for you.
+3. **Chain of Processing**: If a previous tool returns a path like `tools_outputs/file.tif`, you can pass this EXACT string to the next tool. The system will handle the path resolution automatically.
+
 ### Output Requirement
 Return **ONLY** a pure JSON object.
 Format (List of calls):
@@ -169,6 +177,9 @@ You have executed a tool. Now verify if it succeeded.
    - The "Result Output" shown above might be truncated (cut off) due to length limits (e.g., ending mid-string or with "...").
    - **Do NOT fail** verification just because the text is cut off.
    - If the **visible part** of the output shows signs of success (e.g., at least one valid file path, a success message, or valid numbers), treat the entire execution as **SUCCESS**.
+3. **Ignore Path Prefix Mismatches**:
+   - The system employs a path redirection layer. 
+   - If you requested `benchmark/data/file.tif` but the tool returned `tools_outputs/benchmark/data/file.tif`, 
 
 ### Verification Logic:
 1. **Success**: The tool produced a valid output (e.g., a new file path, a specific value, or a successful status code).
