@@ -85,7 +85,7 @@ async def main():
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
     # TODO 初始化智能体
-    agent = SGCAgent(initial_model="Qwen/Qwen3-235B-A22B-Instruct-2507", output_dir="/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
+    agent = SGCAgent(initial_model="qwen3-max", output_dir="/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
