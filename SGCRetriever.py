@@ -66,8 +66,7 @@ class SGCRetriever:
         for rank, c in enumerate(candidates):
             print(f"  {rank+1}. {c['name']} ({c['score']:.4f})")
 
-        final = candidates
-        return final
+        return candidates
 
 # 分数SGC
 
