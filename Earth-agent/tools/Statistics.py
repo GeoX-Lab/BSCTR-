@@ -3214,22 +3214,13 @@ def get_filelist(dir_path: str):
 
     import os
 
-    OUTPUT_DIR_NAME = "tools_outputs"
-    # 1. 路径预处理：如果最外层是 tools_outputs，则剥离它
-    p = Path(dir_path)
-    if len(p.parts) > 0 and p.parts[0] == OUTPUT_DIR_NAME:
-        clean_path = Path(*p.parts[1:])
-    else:
-        clean_path = p
-
-    target_dir = str(clean_path)
-    if not os.path.isdir(target_dir):
+    if not os.path.isdir(dir_path):
         return {
             "status": "error",
-            "message": f"{target_dir} is not a valid directory"
+            "message": f"{dir_path} is not a valid directory"
         }
 
-    files = sorted([f for f in os.listdir(target_dir) if not f.startswith('.')])
+    files = sorted([f for f in os.listdir(dir_path) if not f.startswith('.')])
 
     return {
         "status": "ok",
