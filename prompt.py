@@ -167,43 +167,6 @@ Format (List of calls):
 }}
 """
 
-JUDGER_PROMPT = """
-[Phase: Result Verification]
-You have executed a tool. Now verify if it succeeded.
-
-### Execution Context
-- **Goal**: {task_query}
-- **Tool**: {tool_name}
-- **Tool description**: {tool_doc}
-- **Arguments**: {tool_args}
-- **Result Output**: {truncated_result}
-
-### Priority Directive (CRITICAL)
-1. **Trust Tool Output**: The user's query may contain inaccurate dates (e.g., asking for 2022 data when only 2021 exists).
-2. **Check Argument Validity**: Compare "Arguments" against "Tool description". 
-   - If the schema requires a list (array) but a string was passed, mark as **FAILURE** (ArgumentError).
-3. **Ignore Output Truncation/Display Limits**: 
-   - The "Result Output" shown above might be truncated (cut off) due to length limits (e.g., ending mid-string or with "...").
-   - **Do NOT fail** verification just because the text is cut off.
-   - If the **visible part** of the output shows signs of success (e.g., at least one valid file path, a success message, or valid numbers), treat the entire execution as **SUCCESS**.
-4. **Ignore Path Prefix Mismatches**:
-   - The system employs a path redirection layer. 
-   - If you requested `benchmark/data/file.tif` but the tool returned `tools_outputs/benchmark/data/file.tif`, 
-
-### Verification Logic:
-1. **Success**: The tool produced a valid output (e.g., a new file path, a specific value, or a successful status code).
-2. **Failure**: Python exceptions, empty outputs, or "file not found" errors.
-
-### Output Format:
-Return ONLY a JSON object:
-{{
-    "status": "SUCCESS" or "FAILURE",
-    "error_type": "ArgumentError" | "ToolMismatch" | "RuntimeError" | "None",
-    "reason": "Brief analysis of what went wrong (or right).",
-    "suggestion": "Actionable fix (e.g., 'Use a valid file path from memory', 'Try a different date')."
-}}
-"""
-
 REPLAN_PROMPT = """
 [Phase: Strategic Re-planning]
 You are the **Senior Remote Sensing Planning Agent**. 
@@ -337,7 +300,8 @@ You are a Quality Assurance critic. Verify if the current sub-task has been sati
 Output JSON only:
 {{
     "status": "SUCCESS" or "FAILURE",
+    "error_type": "ArgumentError" | "ToolMismatch" | "RuntimeError" | "None",
     "reason": "Brief explanation of why it passed or failed.",
-    "suggestion": "If failed, what should the agent do next? (e.g., 'Try a different directory', 'Check input data')"
+    "suggestion": "If failed, what should the agent do next? (e.g., 'Try a different directory', 'Check input data')."
 }}
 """
