@@ -10,7 +10,7 @@ from Working_mem import WorkingMemory
 from Toolregistry import ToolRegistry
 from GraphManager import GraphManager
 from SGCRetriever import SGCRetriever
-from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT, JUDGER_PROMPT, SUBTASK_VERIFY_PROMPT
+from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT, SUBTASK_VERIFY_PROMPT
 
 
 class BaseAgent:
@@ -432,7 +432,7 @@ class SGCAgent(BaseAgent):
 
         self.tool_set = new_tool_pool
 
-    def build_tool_pool(self, tasks: List[Dict], top_k: int = 10):
+    def build_tool_pool(self, tasks: List[Dict], top_k: int = 5):
         """
         对一批 tasks 执行检索，增量更新 self.tool_set（不包含 score）
         """
@@ -450,8 +450,19 @@ class SGCAgent(BaseAgent):
                 print(f"[Warning] No tools found for task: {query}")
                 continue
 
-            for c in candidates:
+            task['suggested_tools'] = []
+            for rank, c in enumerate(candidates):
                 tool_name = c["name"]
+                score = c["score"]
+
+                # 将排名信息存入 task 结构
+                task['suggested_tools'].append({
+                    "name": tool_name,
+                    "score": score,
+                    "rank": rank + 1  # 1-based ranking
+                })
+
+                # 更新全局 tool_set
                 if tool_name not in self.tool_set:
                     self.tool_set[tool_name] = {
                         "id": c["id"],
@@ -481,29 +492,57 @@ class SGCAgent(BaseAgent):
         # print("History is ", self.history)
         return tasks
 
-    async def _generate_tool_args(self, candidates: List[Dict], task_query: str) -> List[Dict]:
+    async def _generate_tool_args(self, current_task_node: Dict, all_tools: List[Dict]) -> List[Dict]:
         """
         接收候选工具列表
         """
-        # 1. 批量构建工具信息 (Name + Desc + Schema)
-        tools_list = []
-        for cand in candidates:
-            name = cand['name']
-            # 获取描述
-            info = self.tool_registry.get_unified_tool_info(name)
+        task_query = current_task_node['query']
+        # 获取 SGC 检索到的工具列表 (已经按分数排序)
+        suggested_tools = current_task_node.get('suggested_tools', [])
 
-            tools_list.append({
+        display_list = []
+        added_names = set()
+
+        # === 1. 优先放入检索到的工具 (按 SGC 分数降序) ===
+        for item in suggested_tools:
+            name = item['name']
+
+            # 获取工具完整信息
+            info = self.tool_registry.get_unified_tool_info(name)
+            if not info:
+                continue
+
+            # 直接加入列表，不添加任何额外的 "rank" 或 "recommendation" 字段
+            display_list.append({
                 "name": info["name"],
                 "description": info["description"],
                 "parameters": info["parameters"]
             })
+            added_names.add(name)
 
-        tools_info_str = json.dumps(tools_list, indent=2)
+        # === 2. 补充全局池中的其他工具 ===
+        for tool_data in all_tools:
+            name = tool_data['name']
+
+            if name not in added_names:
+                info = self.tool_registry.get_unified_tool_info(name)
+                if not info:
+                    continue
+
+                display_list.append({
+                    "name": info["name"],
+                    "description": info["description"],
+                    "parameters": info["parameters"]
+                })
+                added_names.add(name)
+
+        tools_info_str = json.dumps(display_list, indent=2)
+        # print(f"Here are all Tools\n SubTask{task_query}", tools_info_str)
         tool_context = self.working_memory.recent_steps
         print(tool_context)
 
         prompt = self.sys_prompt_template + ACTION_PROMPT.format(
-            num_tools=len(tools_list),
+            num_tools=len(display_list),
             task_query=task_query,
             tools_info=tools_info_str,
             tool_context=tool_context
@@ -520,50 +559,6 @@ class SGCAgent(BaseAgent):
             print("No tool_calls found in LLM output.")
             return []
         return tool_calls
-
-    async def _action_verify(self, task_query: str, tool_name: str, args: Dict, result: str) -> Dict:
-        tool_info = self.tool_registry.get_tool(tool_name)
-
-        tool_doc_str = "Not available"
-        if tool_info:
-            meta = tool_info.get('meta', {})
-            desc = meta.get('description', 'No description provided.')
-            params = meta.get('parameters', {})
-
-            # 格式化为易读的文本
-            tool_doc_str = f"Description: {desc}\nParameters Schema: {json.dumps(params, indent=2)}"
-        prompt = self.sys_prompt_template + JUDGER_PROMPT.format(
-            task_query=task_query,
-            tool_name=tool_name,
-            tool_doc=tool_doc_str,
-            tool_args=json.dumps(args),
-            truncated_result=str(result)
-        )
-        resp = await self._llm_generate_text(prompt)
-        res = self._parse_json(resp)
-        verification = res["verification"]
-
-        if not verification or not isinstance(verification, dict):
-            verification = {
-                "status": "SUCCESS",
-                "error_type": "None",
-                "reason": "Auto-pass: verification JSON not found or parse failed.",
-                "suggestion": None
-            }
-
-        verification.setdefault("status", "SUCCESS")
-        verification.setdefault("error_type", "None")
-        verification.setdefault("reason", "")
-        verification.setdefault("suggestion", None)
-
-        self.history.append({
-            "role": "assistant",
-            "content": f"[Verify]\n{json.dumps(verification, ensure_ascii=False, indent=2)}"
-        })
-
-        # print("History is ", self.history)
-
-        return verification
 
     async def _subtask_verify(self, attempt_outputs: List[Dict]) -> Dict:
         current_task = self.working_memory.current_task
@@ -593,7 +588,7 @@ class SGCAgent(BaseAgent):
         return verification
 
     async def _re_plan(self) -> List[Dict]:
-        context = self.working_memory.get_final_report_view
+        context = self.working_memory.get_final_report_view()
         prompt = self.sys_prompt_template + REPLAN_PROMPT.format(
             original_query=self.working_memory.original_query,
             finished_tasks=self.working_memory.finished_tasks,
@@ -662,16 +657,38 @@ class SGCAgent(BaseAgent):
             while attempt <= local_retries:
                 print(f"   [Attempt {attempt + 1}/{local_retries + 1}] Processing...")
 
-                tool_calls = await self._generate_tool_args(list(self.tool_set.values()), current_task['query'])
+                tool_calls = await self._generate_tool_args(current_task, list(self.tool_set.values()))
 
                 if not tool_calls:
-                    has_history = len(self.working_memory.global_history) > 0
-                    last_step = self.working_memory.global_history[-1] if has_history else None
-                    if (last_step and
-                            last_step.get("status") == "SUCCESS" and
-                            last_step.get("current_task") == current_task["query"]):
+                    # 1. 检查上一关 (Global History)
+                    has_global = len(self.working_memory.global_history) > 0
+                    last_global = self.working_memory.global_history[-1] if has_global else None
+
+                    # 2. [新增] 检查当前关的上一轮 (Recent Steps)
+                    # 如果刚才跑过工具且成功了，但 LLM 现在不调工具，说明它忽略了 Verify 的反馈
+                    has_recent = len(self.working_memory.recent_steps) > 0
+                    last_recent = self.working_memory.recent_steps[-1] if has_recent else None
+
+                    if (last_global and
+                            last_global.get("status") == "SUCCESS" and
+                            last_global.get("current_task") == current_task["query"]):
                         step_success = True
                         break
+
+                    # [新增] 针对“验证失败后 LLM 罢工”的处理
+                    elif (last_recent and
+                          last_recent.get("status") == "SUCCESS" and
+                          last_recent.get("current_task") == current_task["query"]):
+
+                        print(f"     [Warning] Agent refuses to act after verification failure.")
+                        # 策略：强制给一条系统反馈，告诉它“别偷懒，刚才的验证没过”
+                        self.working_memory.add_feedback_message(
+                            "System Alert: You decided NOT to call tools, but the previous verification FAILED. "
+                            "You must modify your arguments or try a different tool to satisfy the goal."
+                        )
+                        attempt += 1
+                        continue
+
                     else:
                         print(f"     [Warning] No tools selected. (Attempt {attempt + 1})")
                         attempt += 1
@@ -688,19 +705,20 @@ class SGCAgent(BaseAgent):
                     args = call.get('arguments', {})
 
                     print(f"       -> [Sub-call {t_idx + 1}] {tool_name}")
+                    execution_status = "SUCCESS"
+                    error_msg = None
 
                     try:
                         if not self.tool_registry.get_tool(tool_name):
                             raise ValueError(f"Tool '{tool_name}' not found")
                         result = await self.call_tool(tool_name, args)
+
                     except Exception as e:
                         result = f"SystemException: {e}"
+                        execution_status = "FAIL"
+                        error_msg = str(e)
 
-                    print("Here are tool answers!\n", result)
-
-                    verification = await self._action_verify(current_task['query'], tool_name, args, result)
-
-                    if verification['status'] == 'SUCCESS':
+                    if execution_status == "SUCCESS":
                         print(f"     [Action Success] {tool_name}")
                         self.working_memory.record_tool_success(
                             step=task_idx + 1,
@@ -726,20 +744,25 @@ class SGCAgent(BaseAgent):
 
                     else:
                         current_attempt_tools_ok = False
-                        print(f"       [Fail] {tool_name}: {verification.get('reason')}")
+                        print(f"       [Fail] {tool_name}: {error_msg}")
 
-                        last_verification_error = verification
-
+                        # 构造一个假的 verification 对象方便下面统一处理
+                        last_verification_error = {
+                            "error_type": "ToolExecutionError",
+                            "reason": error_msg
+                        }
+                        self.attempt_tool_chain = []
                         self.working_memory.record_tool_failure(
                             step=task_idx + 1,
                             tool=tool_name,
-                            error_type=verification.get("error_type"),
-                            reason=verification.get("reason")
+                            error_type="ToolExecutionError",
+                            reason=error_msg
                         )
                         break
 
                 # C. 判断本轮尝试结果
                 if current_attempt_tools_ok:
+                    print(f"     [Verify Task] checking results...")
                     task_verification = await self._subtask_verify(current_attempt_outputs)
 
                     if task_verification['status'] == 'SUCCESS':
@@ -751,7 +774,7 @@ class SGCAgent(BaseAgent):
                         print(f"     [Task Fail]\n[Reason] {task_verification.get('reason')}")
                         print(f"     [Suggestion] {task_verification.get('suggestion')}")
 
-                        # 将失败原因写入记忆，这样下一次 attempt 时 LLM 才会调整参数
+                        self.attempt_tool_chain = []
                         self.working_memory.add_feedback_message(
                             f"Verification Failed: {task_verification.get('reason')}. Suggestion: {task_verification.get('suggestion')}"
                         )
