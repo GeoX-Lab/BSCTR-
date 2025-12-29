@@ -85,7 +85,7 @@ async def main():
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
     # TODO 初始化智能体
-    agent = SGCAgent(initial_model="qwen3-max", output_dir="/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
+    agent = SGCAgent(initial_model="Qwen/Qwen3-235B-A22B-Instruct-2507", output_dir="/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/qwen3-max/qwen3-max_outputs.jsonl")
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
@@ -96,41 +96,41 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    # sample = samples[7]
-    # user_query = build_prompt(sample)
-    # choices = sample.get("choices")
-    # try:
-    #     result = await agent.run(user_query, choices)
+    sample = samples[0]
+    user_query = build_prompt(sample)
+    choices = sample.get("choices")
+    try:
+        result = await agent.run(user_query, choices)
+
+        print("\n================ RESULT ================")
+        print(result)
+        print("========================================")
+
+    except Exception as e:
+        print(f"[!] Agent execution failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+    # samples_half = samples[:123]
+    # for sample in samples_half:
+    #     user_query = build_prompt(sample)
+    #     choices = sample.get("choices")
     #
-    #     print("\n================ RESULT ================")
-    #     print(result)
-    #     print("========================================")
+    #     # print("\n================ PROMPT ================")
+    #     # print(user_query)
+    #     # print("========================================\n")
     #
-    # except Exception as e:
-    #     print(f"[!] Agent execution failed: {e}")
-    #     import traceback
-    #     traceback.print_exc()
-
-    samples_half = samples[:123]
-    for sample in samples_half:
-        user_query = build_prompt(sample)
-        choices = sample.get("choices")
-
-        # print("\n================ PROMPT ================")
-        # print(user_query)
-        # print("========================================\n")
-
-        try:
-            result = await agent.run(user_query,choices)
-
-            print("\n================ RESULT ================")
-            print(result)
-            print("========================================")
-
-        except Exception as e:
-            print(f"[!] Agent execution failed: {e}")
-            import traceback
-            traceback.print_exc()
+    #     try:
+    #         result = await agent.run(user_query,choices)
+    #
+    #         print("\n================ RESULT ================")
+    #         print(result)
+    #         print("========================================")
+    #
+    #     except Exception as e:
+    #         print(f"[!] Agent execution failed: {e}")
+    #         import traceback
+    #         traceback.print_exc()
 
 
 if __name__ == "__main__":
