@@ -110,7 +110,6 @@ Example:
 ]
 """
 
-
 ACTION_PROMPT = """
 [Phase: Tool Execution]
 You have {num_tools} candidate tools. 
@@ -123,15 +122,11 @@ Select the **BEST** tools for the current sub-task and configure its arguments.
 ### 2. Candidate Tools
 {tools_info}
 
-### 3. The answer of tool_call before
+### 3. The Answer of Previous Tools AND Previous Verification.
 {tool_context}
 - **Explicit Paths Only**: You MUST use the **exact, full file paths** returned by previous tools. 
 
-
-### 4. Previous Failures (CRITICAL)
-{error_history}
-
-### 5. Parameter Precision & Data Types (CRITICAL)
+### 4. Parameter Precision & Data Types (CRITICAL)
 1. **Strict Data Types**: You **MUST** strictly adhere to the type defined in the tool schema.
    - **List vs. String**: If a parameter requires a list/array (e.g., `image_paths`), you **MUST** provide a JSON list: `["file1.tif", "file2.tif"]`. **NEVER** provide a single comma-separated string (e.g., `"file1.tif,file2.tif"`).
 2. **Unit & Format Semantics**:
@@ -239,7 +234,7 @@ CURRENT EXECUTION STATE (FROM WORKING MEMORY)
 - **DO NOT** repeat these steps. Assume these results are ready for reuse.
 
 ### Tool Feedback 
-{tool_context}
+{context}
 
 --------------------------------------------------
 IMPORTANT: TOOL-AWARE PLANNING RULES (STILL APPLY)
@@ -309,4 +304,40 @@ Return ONLY a JSON list of objects (the new sub-tasks).
         "query": "calculate absolute ...", 
         "tool_search": "Compute the absolute difference between two numbers." }},
 ]
+"""
+SUBTASK_VERIFY_PROMPT = """
+You are a Quality Assurance critic. Verify if the current sub-task has been satisfied based on the tool execution results.
+
+[Sub-Task Goal]
+{subtask}
+
+[Tool Execution Results]
+{subtask_results}
+
+### Priority Directive (CRITICAL)
+1. **Trust Tool Output**: The user's query may contain inaccurate dates (e.g., asking for 2022 data when only 2021 exists).
+2. **Check Argument Validity**: Compare "Arguments" against "Tool description". 
+   - If the schema requires a list (array) but a string was passed, mark as **FAILURE** (ArgumentError).
+3. **Ignore Output Truncation/Display Limits**: 
+   - The "Result Output" shown above might be truncated (cut off) due to length limits (e.g., ending mid-string or with "...").
+   - **Do NOT fail** verification just because the text is cut off.
+   - If the **visible part** of the output shows signs of success (e.g., at least one valid file path, a success message, or valid numbers), treat the entire execution as **SUCCESS**.
+4. **Ignore Path Prefix Mismatches**:
+   - The system employs a path redirection layer. 
+   - If you requested `benchmark/data/file.tif` but the tool returned `tools_outputs/benchmark/data/file.tif`, 
+
+[Criteria]
+1. **SUCCESS**: The tool outputs explicitly contain the information or result required by the sub-task.
+   - Example: Goal="Get file list", Result=["file1.tif", "file2.tif"] -> SUCCESS.
+2. **FAILURE**: The tool executed without error, but the content implies failure or missing data.
+   - Example: Goal="Get file list", Result=[] (Empty list) -> FAILURE.
+   - Example: Goal="Calculate mean", Result="NaN" -> FAILURE.
+   - Example: Goal="Search for X", Result="No results found" -> FAILURE.
+
+Output JSON only:
+{{
+    "status": "SUCCESS" or "FAILURE",
+    "reason": "Brief explanation of why it passed or failed.",
+    "suggestion": "If failed, what should the agent do next? (e.g., 'Try a different directory', 'Check input data')"
+}}
 """

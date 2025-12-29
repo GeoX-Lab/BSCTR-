@@ -12,69 +12,65 @@ class WorkingMemory:
     finished_tasks: List[str] = field(default_factory=list)
     current_task: Optional[str] = None
 
+    # === 全局归档 ===
+    global_history: List[Dict[str, Any]] = field(default_factory=list)
     # === 工具执行上下文 ===
     tool_context: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-
-    # === 智能体中间产物 ===
-    artifacts: Dict[str, Any] = field(default_factory=dict)
 
     # === 最近执行记录===
     recent_steps: List[Dict[str, Any]] = field(default_factory=list)
 
     def start_task(self, task_query: str):
+        """
+        开始一个新子任务：
+        1. 将上一任务的 recent_steps 归档到 global_history
+        2. 清空 recent_steps 以便为新任务提供干净的 Context
+        3. 更新 current_task 名称
+        """
+        # 1. 归档旧记忆
+        if self.recent_steps:
+            self.global_history.extend(self.recent_steps)
+
+        # 2. 设置新任务名
         self.current_task = task_query
 
-    def record_tool_success(self, step: int, tool: str, args: Dict, result_summary: str):
-        self.tool_context[tool] = {
-            "step": step,
-            "last_args": args,
-            "last_result": result_summary,
-            "success": True
-        }
-        self.recent_steps.append({
+    def record_tool_success(self, step: int, tool: str, args: Dict, result: str):
+
+        step_record = {
+            "current_task": self.current_task,
             "tool": tool,
+            "args": args,
+            "result": result,
             "status": "SUCCESS"
-        })
+        }
+        self.tool_context[str(step)] = step_record
+        self.recent_steps.append(step_record)
 
-    def record_tool_failure(self, current_task: str, tool: str, error_type: str, reason: str):
-        self.recent_steps.append({
-            "current_task": current_task,
+    def record_tool_failure(self, step: int, tool: str, error_type: str, reason: str):
+
+        step_record = {
+            "current_task": self.current_task,
             "tool": tool,
-            "status": "FAIL",
             "error_type": error_type,
-            'reason': reason
+            'reason': reason,
+            "status": "FAIL"
+        }
+        self.tool_context[str(step)] = step_record
+        self.recent_steps.append(step_record)
+
+    def add_feedback_message(self, message: str):
+        self.recent_steps.append({
+            "role": "system_feedback",
+            "content": message
         })
-    # ---------- 给 LLM 的视图 ----------
 
-    def get_prompt_view(self) -> str:
-
+    def get_final_report_view(self) -> str:
+        """
+        最终写报告时，需要看所有历史
+        """
+        full_history = self.global_history + self.recent_steps
         view = {
             "goal": self.original_query,
-            "current_task": self.current_task,
-            "finished_tasks": self.finished_tasks,
-            "tool_context": self.tool_context,
+            "execution_log": full_history
         }
         return json.dumps(view, ensure_ascii=False, indent=2)
-
-    def get_error_history(self, task_query: str) -> str:
-        """
-        从 recent_steps 中筛选出属于当前 task_query 的失败记录，
-        并格式化为字符串，用于 Prompt 提示。
-        """
-        relevant_failures = [
-            step for step in self.recent_steps
-            if step.get("status") == "FAIL" and step.get("current_task") == task_query
-        ]
-
-        if not relevant_failures:
-            return "None (No previous failures for this step)."
-
-        history_lines = []
-        for i, f in enumerate(relevant_failures):
-            history_lines.append(f"--- Failure Record {i + 1} ---")
-            history_lines.append(f"Target Tool: {f.get('tool')}")
-            history_lines.append(f"Error Type:  {f.get('error_type')}")
-            history_lines.append(f"Detailed Reason: {f.get('reason')}")
-            history_lines.append("")
-
-        return "\n".join(history_lines).strip()
