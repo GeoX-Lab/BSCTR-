@@ -28,6 +28,16 @@ deepseek-v3.2:
     temperature: 0.0
     stream: true
 
+Qwen3-32B-AWQ:
+  use_responses_api: true
+  client_kwargs:
+    api_key: "EMPTY"
+    base_url: "http://127.0.0.1:8101/v1/"
+  generation:
+    max_tokens: 64000
+    temperature: 0.0
+    stream: true
+
 ollama:
   embedding_url: "http://localhost:11434/api/embeddings"
   model_name: "nomic-embed-text:latest"
