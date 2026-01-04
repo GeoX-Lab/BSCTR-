@@ -3,6 +3,7 @@ import requests
 import yaml
 import torch
 import inspect
+import asyncio
 from collections import OrderedDict
 from typing import Any, Optional, List, Dict
 from model import LLM
@@ -227,7 +228,7 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             # print("[*] Reading trajectory from file and updating graph...")
-            trajectories = self.load_trajectory_from_file(trajectory_file_path, 50)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 160)
             # print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
@@ -539,7 +540,7 @@ class SGCAgent(BaseAgent):
         tools_info_str = json.dumps(display_list, indent=2)
         # print(f"Here are all Tools\n SubTask{task_query}", tools_info_str)
         tool_context = self.working_memory.recent_steps
-        print(tool_context)
+        # print(tool_context)
 
         prompt = self.sys_prompt_template + ACTION_PROMPT.format(
             num_tools=len(display_list),
@@ -560,13 +561,28 @@ class SGCAgent(BaseAgent):
             return []
         return tool_calls
 
-    async def _subtask_verify(self, attempt_outputs: List[Dict]) -> Dict:
+    async def _subtask_verify(self, query: str, attempt_outputs: List[Dict], all_tools: List[Dict]) -> Dict:
         current_task = self.working_memory.current_task
         results_str = json.dumps(attempt_outputs, ensure_ascii=False, indent=2)
 
+        tool_list = []
+        for tool_data in all_tools:
+            name = tool_data['name']
+            info = self.tool_registry.get_unified_tool_info(name)
+
+            tool_list.append({
+                "name": info["name"],
+                "description": info["description"],
+                "parameters": info["parameters"]
+            })
+
+        tools_info_str = json.dumps(tool_list, indent=2)
+
         prompt = self.sys_prompt_template + SUBTASK_VERIFY_PROMPT.format(
+            query=query,
             subtask=current_task,
-            subtask_results=results_str
+            subtask_results=results_str,
+            tools_info=tools_info_str
         )
 
         resp = await self._llm_generate_text(prompt)
@@ -615,6 +631,7 @@ class SGCAgent(BaseAgent):
         self.history = []
         self.tool_set = OrderedDict()
         self.attempt_tool_chain = []
+        final_summary = "Task Interrupted or Failed"  # 默认值
 
         # TODO 历史工具路径
         trajectory_path = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/GT/tool_chain.json"
@@ -630,217 +647,252 @@ class SGCAgent(BaseAgent):
         self.working_memory = WorkingMemory(original_query=user_query)
         self.history.append({"role": "user", "content": user_query})
 
-        # 2. 初始规划
-        print(f"\n>>> [Planning] Decomposing User Query...")
-        task_queue = await self._decompose_query(user_query)
-        print(f"    Initial Plan: {len(task_queue)} steps.")
+        try:
 
-        # 3. 检索工具池
-        print("\n>>> [Retrieval] Collecting tools for ALL planned tasks...")
-        self.build_tool_pool(task_queue)
+            # 2. 初始规划
+            print(f"\n>>> [Planning] Decomposing User Query...")
+            task_queue = await self._decompose_query(user_query)
+            print(f"    Initial Plan: {len(task_queue)} steps.\n{task_queue}")
 
-        # 4. 任务执行循环
-        task_idx = 0
-        MAX_GLOBAL_RETRIES = 3
-        global_retry_count = 0
+            # 3. 检索工具池
+            print("\n>>> [Retrieval] Collecting tools for ALL planned tasks...")
+            self.build_tool_pool(task_queue)
 
-        while task_idx < len(task_queue):
-            current_task = task_queue[task_idx]
-            self.working_memory.start_task(current_task['query'])
+            # 4. 任务执行循环
+            task_idx = 0
+            MAX_GLOBAL_RETRIES = 3
+            global_retry_count = 0
 
-            print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
+            while task_idx < len(task_queue):
+                current_task = task_queue[task_idx]
+                self.working_memory.start_task(current_task['query'])
 
-            step_success = False
-            local_retries = 2
-            attempt = 0
+                print(f"\n=== Step {task_idx + 1}: {current_task['query']} ===")
 
-            while attempt <= local_retries:
-                print(f"   [Attempt {attempt + 1}/{local_retries + 1}] Processing...")
+                step_success = False
+                local_retries = 2
+                attempt = 0
 
-                tool_calls = await self._generate_tool_args(current_task, list(self.tool_set.values()))
+                while attempt <= local_retries:
+                    print(f"   [Attempt {attempt + 1}/{local_retries + 1}] Processing...")
 
-                if not tool_calls:
-                    # 1. 检查上一关 (Global History)
-                    has_global = len(self.working_memory.global_history) > 0
-                    last_global = self.working_memory.global_history[-1] if has_global else None
+                    tool_calls = await self._generate_tool_args(current_task, list(self.tool_set.values()))
 
-                    # 2. [新增] 检查当前关的上一轮 (Recent Steps)
-                    # 如果刚才跑过工具且成功了，但 LLM 现在不调工具，说明它忽略了 Verify 的反馈
-                    has_recent = len(self.working_memory.recent_steps) > 0
-                    last_recent = self.working_memory.recent_steps[-1] if has_recent else None
+                    if not tool_calls:
+                        # 1. 检查上一关 (Global History)
+                        has_global = len(self.working_memory.global_history) > 0
+                        last_global = self.working_memory.global_history[-1] if has_global else None
 
-                    if (last_global and
-                            last_global.get("status") == "SUCCESS" and
-                            last_global.get("current_task") == current_task["query"]):
-                        step_success = True
-                        break
+                        # 2. [新增] 检查当前关的上一轮 (Recent Steps)
+                        # 如果刚才跑过工具且成功了，但 LLM 现在不调工具，说明它忽略了 Verify 的反馈
+                        has_recent = len(self.working_memory.recent_steps) > 0
+                        last_recent = self.working_memory.recent_steps[-1] if has_recent else None
 
-                    # [新增] 针对“验证失败后 LLM 罢工”的处理
-                    elif (last_recent and
-                          last_recent.get("status") == "SUCCESS" and
-                          last_recent.get("current_task") == current_task["query"]):
+                        if (last_global and
+                                last_global.get("status") == "SUCCESS" and
+                                last_global.get("current_task") == current_task["query"]):
+                            step_success = True
+                            break
 
-                        print(f"     [Warning] Agent refuses to act after verification failure.")
-                        # 策略：强制给一条系统反馈，告诉它“别偷懒，刚才的验证没过”
-                        self.working_memory.add_feedback_message(
-                            "System Alert: You decided NOT to call tools, but the previous verification FAILED. "
-                            "You must modify your arguments or try a different tool to satisfy the goal."
-                        )
-                        attempt += 1
-                        continue
+                        # [新增] 针对“验证失败后 LLM 罢工”的处理
+                        elif (last_recent and
+                              last_recent.get("status") == "SUCCESS" and
+                              last_recent.get("current_task") == current_task["query"]):
 
-                    else:
-                        print(f"     [Warning] No tools selected. (Attempt {attempt + 1})")
-                        attempt += 1
-                        continue
+                            print(f"     [Warning] Agent refuses to act after verification failure.")
+                            # 策略：强制给一条系统反馈，告诉它“别偷懒，刚才的验证没过”
+                            self.working_memory.add_feedback_message(
+                                "System Alert: You decided NOT to call tools, but the previous verification FAILED. "
+                                "You must modify your arguments or try a different tool to satisfy the goal."
+                            )
+                            attempt += 1
+                            continue
 
-                print(f"     [Plan] Selected {len(tool_calls)} tools: {[t['tool_name'] for t in tool_calls]}")
+                        else:
+                            print(f"     [Warning] No tools selected. (Attempt {attempt + 1})")
+                            attempt += 1
+                            continue
 
-                current_attempt_tools_ok = True
-                last_verification_error = None
-                current_attempt_outputs = []
+                    print(f"     [Plan] Selected {len(tool_calls)} tools: {[t['tool_name'] for t in tool_calls]}")
 
-                for t_idx, call in enumerate(tool_calls):
-                    tool_name = call.get('tool_name')
-                    args = call.get('arguments', {})
+                    current_attempt_tools_ok = True
+                    last_verification_error = None
+                    current_attempt_outputs = []
 
-                    print(f"       -> [Sub-call {t_idx + 1}] {tool_name}")
-                    execution_status = "SUCCESS"
-                    error_msg = None
+                    temp_tool_ids = []
 
-                    try:
-                        if not self.tool_registry.get_tool(tool_name):
-                            raise ValueError(f"Tool '{tool_name}' not found")
-                        result = await self.call_tool(tool_name, args)
+                    for t_idx, call in enumerate(tool_calls):
+                        tool_name = call.get('tool_name')
+                        args = call.get('arguments', {})
 
-                    except Exception as e:
-                        result = f"SystemException: {e}"
-                        execution_status = "FAIL"
-                        error_msg = str(e)
+                        print(f"       -> [Sub-call {t_idx + 1}] {tool_name}")
+                        execution_status = "SUCCESS"
+                        error_msg = None
 
-                    if execution_status == "SUCCESS":
-                        print(f"     [Action Success] {tool_name}")
-                        self.working_memory.record_tool_success(
-                            step=task_idx + 1,
-                            tool=tool_name,
-                            args=args,
-                            result=result)
+                        try:
+                            if not self.tool_registry.get_tool(tool_name):
+                                raise ValueError(f"Tool '{tool_name}' not found")
+                            result = await self.call_tool(tool_name, args)
 
-                        current_attempt_outputs.append({
-                            "tool": tool_name,
-                            "args": args,
-                            "result": str(result)
-                        })
+                        except Exception as e:
+                            result = f"SystemException: {e}"
+                            execution_status = "FAIL"
+                            error_msg = str(e)
 
-                        tool_id = self.tool_map.get(tool_name)
-                        if tool_id is not None:
-                            if self.attempt_tool_chain:
+                        if execution_status == "SUCCESS":
+                            print(f"     [Action Success] {tool_name}")
+                            self.working_memory.record_tool_success(
+                                step=task_idx + 1,
+                                tool=tool_name,
+                                args=args,
+                                result=result)
+
+                            current_attempt_outputs.append({
+                                "tool": tool_name,
+                                "args": args,
+                                "result": str(result)
+                            })
+
+                            tool_id = self.tool_map.get(tool_name)
+                            if tool_id is not None:
+                                temp_tool_ids.append(tool_id)
+
+                        else:
+                            current_attempt_tools_ok = False
+                            print(f"       [Fail] {tool_name}: {error_msg}")
+
+                            # 构造一个假的 verification 对象方便下面统一处理
+                            last_verification_error = {
+                                "error_type": "ToolExecutionError",
+                                "reason": error_msg
+                            }
+                            self.attempt_tool_chain = []
+                            self.working_memory.record_tool_failure(
+                                step=task_idx + 1,
+                                tool=tool_name,
+                                error_type="ToolExecutionError",
+                                reason=error_msg
+                            )
+                            break
+
+                    # C. 判断本轮尝试结果
+                    if current_attempt_tools_ok:
+                        print(f"     [Verify Task] checking results...")
+                        task_verification = await self._subtask_verify(
+                            user_query,
+                            current_attempt_outputs,
+                            list(self.tool_set.values()))
+
+                        if task_verification['status'] == 'SUCCESS':
+                            print(f"     [Task Success] {task_verification['reason']}")
+                            if self.attempt_tool_chain and temp_tool_ids:
                                 prev_tool_id = self.attempt_tool_chain[-1]
-                                prev_tool = self.tool_names[prev_tool_id]
-                                if prev_tool_id != tool_id:
-                                    self.graph_manager.add_edge(prev_tool_id, tool_id, weight=1.0)
-                                    print(f"Update SGC graph from {prev_tool} to {tool_name}")
-                            self.attempt_tool_chain.append(tool_id)
+                                curr_first_tool_id = temp_tool_ids[0]
 
+                                if prev_tool_id != curr_first_tool_id:
+                                    # 更新图权重
+                                    self.graph_manager.add_edge(prev_tool_id, curr_first_tool_id, weight=1.0)
+                                    p_name = self.tool_names[prev_tool_id]
+                                    c_name = self.tool_names[curr_first_tool_id]
+                                    print(f"     [Graph Update] Step-Link: {p_name} -> {c_name}")
+
+                            for i in range(len(temp_tool_ids) - 1):
+                                src = temp_tool_ids[i]
+                                dst = temp_tool_ids[i + 1]
+                                if src != dst:
+                                    self.graph_manager.add_edge(src, dst, weight=1.0)
+                                    print(
+                                        f"     [Graph Update] Inner-Link: {self.tool_names[src]} -> {self.tool_names[dst]}")
+                            self.attempt_tool_chain.extend(temp_tool_ids)
+                            step_success = True
+                            break
+                        else:
+                            # 工具跑通了，但任务没完成 (例如：文件列表为空，计算结果为NaN)
+                            print(f"     [Task Fail]\n[Reason] {task_verification.get('reason')}")
+                            print(f"     [Suggestion] {task_verification.get('suggestion')}")
+
+                            self.working_memory.add_feedback_message(
+                                f"Verification Failed: {task_verification.get('reason')}. Suggestion: {task_verification.get('suggestion')}"
+                            )
+                            attempt += 1
                     else:
-                        current_attempt_tools_ok = False
-                        print(f"       [Fail] {tool_name}: {error_msg}")
+                        err_type = last_verification_error.get('error_type') if last_verification_error else "Unknown"
+                        print(f"     [Retry Trigger] Failure reason: {err_type}. Retrying...")
+                        attempt += 1
 
-                        # 构造一个假的 verification 对象方便下面统一处理
-                        last_verification_error = {
-                            "error_type": "ToolExecutionError",
-                            "reason": error_msg
-                        }
-                        self.attempt_tool_chain = []
-                        self.working_memory.record_tool_failure(
-                            step=task_idx + 1,
-                            tool=tool_name,
-                            error_type="ToolExecutionError",
-                            reason=error_msg
-                        )
-                        break
-
-                # C. 判断本轮尝试结果
-                if current_attempt_tools_ok:
-                    print(f"     [Verify Task] checking results...")
-                    task_verification = await self._subtask_verify(current_attempt_outputs)
-
-                    if task_verification['status'] == 'SUCCESS':
-                        print(f"     [Task Success] {task_verification['reason']}")
-                        step_success = True
-                        break
-                    else:
-                        # 工具跑通了，但任务没完成 (例如：文件列表为空，计算结果为NaN)
-                        print(f"     [Task Fail]\n[Reason] {task_verification.get('reason')}")
-                        print(f"     [Suggestion] {task_verification.get('suggestion')}")
-
-                        self.attempt_tool_chain = []
-                        self.working_memory.add_feedback_message(
-                            f"Verification Failed: {task_verification.get('reason')}. Suggestion: {task_verification.get('suggestion')}"
-                        )
+                if step_success:
+                    print(f"   [Success] Step {task_idx + 1} completed.")
+                    self.working_memory.finished_tasks.append(current_task['query'])
+                    # TODO 更新子节点到工具池
+                    # if task_idx == 0:
+                    #     self.update_tool_pool_with_children()
+                    task_idx += 1
                 else:
-                    err_type = last_verification_error.get('error_type') if last_verification_error else "Unknown"
-                    print(f"     [Retry Trigger] Failure reason: {err_type}. Retrying...")
-                    attempt += 1
+                    # D. 任务失败，触发 Re_plan
+                    print(f"[!] Step {task_idx + 1} failed after {local_retries + 1} attempts.")
 
-            if step_success:
-                print(f"   [Success] Step {task_idx + 1} completed.")
-                self.working_memory.finished_tasks.append(current_task['query'])
-                # TODO 更新子节点到工具池
-                # if task_idx == 0:
-                #     self.update_tool_pool_with_children()
-                task_idx += 1
-            else:
-                # D. 任务失败，触发 Re_plan
-                print(f"[!] Step {task_idx + 1} failed after {local_retries + 1} attempts.")
+                    if global_retry_count < MAX_GLOBAL_RETRIES:
+                        print("    >>> Triggering Re-plan...")
+                        new_sub_tasks = await self._re_plan()
 
-                if global_retry_count < MAX_GLOBAL_RETRIES:
-                    print("    >>> Triggering Re-plan...")
-                    new_sub_tasks = await self._re_plan()
+                        if new_sub_tasks:
+                            print(f"    [Re-plan Success] Generated {len(new_sub_tasks)} new steps.")
 
-                    if new_sub_tasks:
-                        print(f"    [Re-plan Success] Generated {len(new_sub_tasks)} new steps.")
+                            task_queue = task_queue[:task_idx] + new_sub_tasks
+                            self.build_tool_pool(new_sub_tasks)
 
-                        task_queue = task_queue[:task_idx] + new_sub_tasks
-                        self.build_tool_pool(new_sub_tasks)
-
-                        global_retry_count += 1
-                        continue
+                            global_retry_count += 1
+                            continue
+                        else:
+                            print("[!] Re-planning returned empty tasks. Aborting.")
+                            break
                     else:
-                        print("[!] Re-planning returned empty tasks. Aborting.")
+                        print("[!] Max global retries reached. Task Failed.")
                         break
-                else:
-                    print("[!] Max global retries reached. Task Failed.")
-                    break
 
-        # 最终总结
-        final_prompt = f"""
-            You are generating the final report for this agent run.
-            User query:
-            {user_query}
-            
-            Answer Choices:
-            {choices}
+            # 最终总结
+            final_prompt = f"""
+                You are generating the final report for this agent run.
+                User query:
+                {user_query}
+                
+                Answer Choices:
+                {choices}
+    
+                Working memory view:
+                {self.working_memory.get_final_report_view()}
+    
+                Requirements:
+                1) **Always output a final answer from the available answer choices (A/B/C/D)**, if provided in the user query.
+                2) **If the task FAILED**, include the following:
+                   - Completed steps: List out all the steps that were executed.
+                   - Last failure information: Provide details on what went wrong (e.g., incorrect input, tool malfunction, etc.).
+                   - What is missing: Clearly state what part of the task could not be completed and why.
+    
+                3) **When answer choices (A/B/C/D) are provided in the user query**, select the best option from the available outputs. The answer should match **the tool’s execution results**. Ensure you check the tool output carefully for correctness before selecting the answer. If no answer matches, indicate that it cannot be determined from the available tool outputs.
+                4) **Verification**: If the tool output contains multiple potential answers or ambiguous results, state that it is unclear and cannot be definitively answered from the available tool outputs. Always ensure the correct matching between the question's requirements and the tool’s results.
+    
+                **Rely on the information, only output (A/B/C/D)** 
+                """
+            final_summary = await self._llm_clean_tool(prompt=final_prompt)
+            self.history.append({"role": "assistant", "content": final_summary})
+            return final_summary
 
-            Working memory view:
-            {self.working_memory.get_final_report_view()}
+        except asyncio.CancelledError:
+            # 专门捕获超时信号
+            print("\n[!] Agent execution was cancelled due to timeout!")
+            final_summary = "TIMEOUT: The task exceeded the time limit (10 mins) and was terminated."
+            self.history.append({"role": "system", "content": final_summary})
 
-            Requirements:
-            1) **Always output a final answer from the available answer choices (A/B/C/D)**, if provided in the user query.
-            2) **If the task FAILED**, include the following:
-               - Completed steps: List out all the steps that were executed.
-               - Last failure information: Provide details on what went wrong (e.g., incorrect input, tool malfunction, etc.).
-               - What is missing: Clearly state what part of the task could not be completed and why.
+        except Exception as e:
+            print(f"\n[!] 💥 Runtime Error: {e}")
+            final_summary = f"Runtime Error: {str(e)}"
 
-            3) **When answer choices (A/B/C/D) are provided in the user query**, select the best option from the available outputs. The answer should match **the tool’s execution results**. Ensure you check the tool output carefully for correctness before selecting the answer. If no answer matches, indicate that it cannot be determined from the available tool outputs.
-            4) **Verification**: If the tool output contains multiple potential answers or ambiguous results, state that it is unclear and cannot be definitively answered from the available tool outputs. Always ensure the correct matching between the question's requirements and the tool’s results.
+        finally:
+            print("     [System] Saving execution log before exit...")
+            self.save_data(query=user_query, final_result=final_summary)
 
-            **Rely on the information, only output (A/B/C/D)** 
-            """
-        final_summary = await self._llm_clean_tool(prompt=final_prompt)
-        self.history.append({"role": "assistant", "content": final_summary})
-        self.save_data(query=user_query, final_result=final_summary)
-        return final_summary
+            return final_summary
 
     # def print_graph_edges(self, graph_manager, tool_names, k=20):
     #     edges = torch.nonzero(graph_manager.adj, as_tuple=False)
