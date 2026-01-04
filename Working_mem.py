@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
-import json
+import json, copy
 
 
 @dataclass
@@ -66,11 +66,40 @@ class WorkingMemory:
 
     def get_final_report_view(self) -> str:
         """
-        最终写报告时，需要看所有历史
+        最终写报告时，需要看所有历史。
+        优化点：保留成功步骤 + 失败步骤（尤其是最后一步的报错），并截断过长内容。
         """
-        full_history = self.global_history + self.recent_steps
+        # 1. 获取完整历史
+        raw_history = self.global_history + self.recent_steps
+
+        # 2. 如果历史为空，直接返回
+        if not raw_history:
+            return json.dumps({"goal": self.original_query, "execution_log": []})
+
+        history_list = []
+
+        # 3. 遍历处理
+        for i, step in enumerate(raw_history):
+            # 深度拷贝，防止修改原始数据
+            clean_step = copy.deepcopy(step)
+            is_last_step = (i == len(raw_history) - 1)
+
+            if clean_step.get("status") == "SUCCESS" or is_last_step:
+
+                # --- 截断逻辑 (保持你写的，很好) ---
+                if "result" in clean_step and isinstance(clean_step["result"], str):
+                    if len(clean_step["result"]) > 500:  # 稍微给多一点，500有时候太短看不出报错细节
+                        clean_step["result"] = clean_step["result"][:800] + "... [Truncated]"
+
+                if "args" in clean_step:
+                    args_str = str(clean_step["args"])
+                    if len(args_str) > 500:
+                        clean_step["args"] = args_str[:500] + "... [Truncated]"
+
+                history_list.append(clean_step)
+
         view = {
             "goal": self.original_query,
-            "execution_log": full_history
+            "execution_log": history_list
         }
         return json.dumps(view, ensure_ascii=False, indent=2)
