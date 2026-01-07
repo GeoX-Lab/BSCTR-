@@ -149,8 +149,8 @@ When defining `output_path`, you **MUST** mirror the directory structure of the 
 1. **Format**: `tools_outputs/` + [Input Directory Path] + [New Filename]
 2. **Do NOT flatten**: Never save directly to `tools_outputs/`.
 3. **Example**: 
-   - Input_dir: `benchmark/data/question5/`
-   - Output_dir: `tools_outputs/benchmark/data/question5/`
+   - Input_dir: `/benchmark/data/question5/`
+   - Output_dir: `/tools_outputs/benchmark/data/question5/`
 
 ### Output Requirement
 Return **ONLY** a pure JSON object.
@@ -274,7 +274,7 @@ The agent has access ONLY to the following tools.
    - If the **visible part** of the output shows signs of success (e.g., at least one valid file path, a success message, or valid numbers), treat the entire execution as **SUCCESS**.
 4. **Ignore Path Prefix Mismatches**:
    - The system employs a path redirection layer. 
-   - If you requested `benchmark/data/file.tif` but the tool returned `tools_outputs/benchmark/data/file.tif`, 
+   - If you requested `/benchmark/data/file.tif` but the tool returned `/tools_outputs/benchmark/data/file.tif`, 
 
 [Criteria]
 1. **SUCCESS**: The tool outputs explicitly contain the information or result required by the sub-task.
@@ -296,13 +296,13 @@ Output JSON only:
 FINAL_SUMMARY_PROMPT = """
 You are generating the final report for this agent run.
    User query:
-   {{user_query}}
+   {user_query}
    
    Answer Choices:
-   {{choices}}
+   {choices}
 
    Working memory view:
-   {{working_memory}}
+   {working_memory}
 
    Requirements:
    1) **Always output a final answer from the available answer choices (A/B/C/D)**, if provided in the user query.

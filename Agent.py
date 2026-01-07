@@ -228,7 +228,7 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             # print("[*] Reading trajectory from file and updating graph...")
-            trajectories = self.load_trajectory_from_file(trajectory_file_path, 232)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 0)
             # print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
@@ -632,6 +632,7 @@ class SGCAgent(BaseAgent):
             choices=choices,
             working_memory=self.working_memory.get_final_report_view()
         )
+        print("\n>>> [Final Summary] Generating final answer...",prompt)
         final_summary = await self._llm_clean_text(prompt=prompt)
         self.history.append({"role": "assistant", "content": final_summary})
         return final_summary
