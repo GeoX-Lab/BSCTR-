@@ -489,35 +489,67 @@ def calculate_bbox_area(bboxes, gsd=None):
         total_area *= gsd * gsd
     
     return total_area
-   
+
 def get_model_output(model_name: str, input_image_path: str, **args):
     import pandas as pd
 
-    #TODO 切换路径
     results = pd.read_csv("/media/csudxy0218/ZL/AgentToolmem/Earth-agent/tools/model_results.csv", sep=';')
     result = None
+
     try:
-        # classification
-        if model_name in ['MSCN', 'RemoteCLIP']:
-            result = results[(results['model'] == model_name) & (results['file_path'] == input_image_path)].values[0]
-        # detection
-        elif model_name == 'Strip-R-CNN':
-            result = results[(results['model'] == model_name) & (results['file_path'] == input_image_path)].values[0]
-        # visual grounding
-        elif model_name == 'RemoteSAM':
-            result = results[(results['model'] == model_name) & (results['file_path'] == input_image_path)].values[0]
-            result = result[args['text_prompt']]
-        # counting
-        elif model_name == 'InstructSAM':
-            result = results[(results['model'] == model_name) & (results['file_path'] == input_image_path)].values[0]
-            result = result[args['text_prompt']]
-        # segmentation
+        # --- 情况 A: 变化检测 (ChangeOS) ---
+        # 对应你表中的格式: (path1, path2);ChangeOS;;;result_path
+        if model_name == 'ChangeOS':
+            if 'post_image_path' in args:
+                # 严格匹配表中的 (path1, path2) 字符串格式
+                combined_path = f"({input_image_path}, {args['post_image_path']})"
+                mask = (results['model'] == 'ChangeOS') & (results['file_path'] == combined_path)
+            else:
+                # 兼容表中单图作为 file_path 的情况（如 question216/217）
+                mask = (results['model'] == 'ChangeOS') & (results['file_path'] == input_image_path)
+
+            result = results[mask]['result'].values[0]
+
+        # --- 情况 B: 目标检测 (SM3Det / Strip-R-CNN) ---
+        # 对应格式: file_path;SM3Det;text_prompt;;[[...]]
+        elif model_name in ['SM3Det', 'Strip-R-CNN']:
+            mask = (results['model'] == model_name) & \
+                   (results['file_path'] == input_image_path) & \
+                   (results['text_prompt'] == args.get('text_prompt'))
+            result = results[mask]['result'].values[0]
+
+        # --- 情况 C: 实例分割 (SAM2) ---
+        # 对应格式: file_path;SAM2;;bbox;result_path
         elif model_name == 'SAM2':
-            result = results[(results['model'] == model_name) & (results['file_path'] == input_image_path)].values[0]
-            result = result[args['bbox']]
-    except:
+            # 注意：表中 SAM2 的 bbox 列存的是字符串形式的列表
+            mask = (results['model'] == 'SAM2') & \
+                   (results['file_path'] == input_image_path) & \
+                   (results['bbox'] == str(args.get('bbox')))
+            result = results[mask]['result'].values[0]
+            # 如果结果包含分号（如表中的 A_mask.png;），去掉末尾分号
+            result = result.split(';')[0]
+
+        # --- 情况 D: 视觉定位与计数 (RemoteSAM / InstructSAM) ---
+        elif model_name in ['RemoteSAM', 'InstructSAM']:
+            mask = (results['model'] == model_name) & \
+                   (results['file_path'] == input_image_path) & \
+                   (results['text_prompt'] == args.get('text_prompt'))
+            result = results[mask]['result'].values[0]
+
+        # --- 情况 E: 场景分类 (MSCN / RemoteCLIP) ---
+        # 对应格式: file_path;MSCN;;;{'predicted_class':...}
+        elif model_name in ['MSCN', 'RemoteCLIP']:
+            mask = (results['model'] == model_name) & (results['file_path'] == input_image_path)
+            result = results[mask]['result'].values[0]
+
+        # --- 其他 ---
+        else:
+            mask = (results['model'] == model_name) & (results['file_path'] == input_image_path)
+            result = results[mask]['result'].values[0]
+
+    except Exception:
         pass
-    
+
     if result is None:
         return 'Failed to call model'
     else:

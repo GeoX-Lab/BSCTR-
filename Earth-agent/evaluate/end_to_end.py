@@ -9,7 +9,7 @@ from typing import Dict, List
 # 1. 设置标准答案路径
 GROUND_TRUTH_FILE = "./extracted_tool_calls_GT.json"
 # 2. 设置你刚刚转换生成的模型输出目录
-MODEL_OUTPUT_DIR = "qwen3-max"
+MODEL_OUTPUT_DIR = "Qwen3-32B"
 
 
 # ===========================================
@@ -77,7 +77,8 @@ def calculate_accuracy(ground_truth_data: List[Dict], predicted_data: List[Dict]
             # results["missing_predictions"].append(question_index)
             continue
 
-        gt_answer = gt_item.get("final_answer", "").strip()
+        raw_gt = gt_item.get("final_answer")
+        gt_answer = (raw_gt if raw_gt is not None else "").strip()
 
         results["evaluated_questions"] += 1
         pred_item = pred_dict[question_index]

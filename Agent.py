@@ -228,7 +228,7 @@ class SGCAgent(BaseAgent):
         # 历史轨迹输入
         if trajectory_file_path:
             # print("[*] Reading trajectory from file and updating graph...")
-            trajectories = self.load_trajectory_from_file(trajectory_file_path, 160)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 232)
             # print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
@@ -746,6 +746,7 @@ class SGCAgent(BaseAgent):
                                 tool=tool_name,
                                 args=args,
                                 result=result)
+                            print(f"     [Tool Results] {tool_name}:{result}")
 
                             current_attempt_outputs.append({
                                 "tool": tool_name,

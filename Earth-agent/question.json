@@ -879,7 +879,7 @@
         ],
         "evaluation": [
             {
-                "question": "Based on temperature and vegetation data (NDVI and LST) from the agricultural region near Urumqi, Xinjiang between 2019 and 2023,  first apply the Temperature-Vegetation Dryness Index (TVDI) method by constructing a scatter plot of NDVI versus LST for each day, and calculate the TVDI value for each pixel to reflect the dryness condition and then calculate the annual average of TVDI and perform linear analysis on the annual average value data to best describes the annual trend.",
+                "question": "Based on temperature and vegetation data (NDVI and LST) from the agricultural region near Urumqi, Xinjiang between 2019 and 2022,  first apply the Temperature-Vegetation Dryness Index (TVDI) method by constructing a scatter plot of NDVI versus LST for each day, and calculate the TVDI value for each pixel to reflect the dryness condition and then calculate the annual average of TVDI and perform linear analysis on the annual average value data to best describes the annual trend.",
                 "gt_answer": {
                     "whitelist": "B",
                     "blacklist": null

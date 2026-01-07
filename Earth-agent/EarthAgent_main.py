@@ -112,7 +112,7 @@ async def main():
     #     import traceback
     #     traceback.print_exc()
 
-    samples_half = samples[164:]
+    samples_half = samples[:31]
     for sample in samples_half:
         user_query = build_prompt(sample)
         choices = sample.get("choices")
