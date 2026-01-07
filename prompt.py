@@ -292,3 +292,27 @@ Output JSON only:
     "suggestion": "If failed, what should the agent do next? ."
 }}
 """
+
+FINAL_SUMMARY_PROMPT = """
+You are generating the final report for this agent run.
+   User query:
+   {{user_query}}
+   
+   Answer Choices:
+   {{choices}}
+
+   Working memory view:
+   {{working_memory}}
+
+   Requirements:
+   1) **Always output a final answer from the available answer choices (A/B/C/D)**, if provided in the user query.
+   2) **If the task FAILED**, include the following:
+      - Completed steps: List out all the steps that were executed.
+      - Last failure information: Provide details on what went wrong (e.g., incorrect input, tool malfunction, etc.).
+      - What is missing: Clearly state what part of the task could not be completed and why.
+
+   3) **When answer choices (A/B/C/D) are provided in the user query**, select the best option from the available outputs. The answer should match **the tool’s execution results**. Ensure you check the tool output carefully for correctness before selecting the answer. If no answer matches, indicate that it cannot be determined from the available tool outputs.
+   4) **Verification**: If the tool output contains multiple potential answers or ambiguous results, state that it is unclear and cannot be definitively answered from the available tool outputs. Always ensure the correct matching between the question's requirements and the tool’s results.
+
+   **Rely on the information, only output (A/B/C/D)** 
+"""

@@ -11,7 +11,7 @@ from Working_mem import WorkingMemory
 from Toolregistry import ToolRegistry
 from GraphManager import GraphManager
 from SGCRetriever import SGCRetriever
-from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT, SUBTASK_VERIFY_PROMPT
+from prompt import DECOMPOSE_PROMPT, ACTION_PROMPT, SYSTEM_PROMPT, REPLAN_PROMPT, SUBTASK_VERIFY_PROMPT, FINAL_SUMMARY_PROMPT
 
 
 class BaseAgent:
@@ -294,7 +294,7 @@ class SGCAgent(BaseAgent):
                 acc.append(chunk.get("text", ""))
         return "".join(acc).strip()
 
-    async def _llm_clean_tool(self, prompt: str, history: List[Dict] = None) -> str:
+    async def _llm_clean_text(self, prompt: str, history: List[Dict] = None) -> str:
         acc = []
         async for chunk in self.llm.generate_stream_res(prompt=prompt, history=history):
             if chunk.get("type") == "final":
@@ -549,7 +549,7 @@ class SGCAgent(BaseAgent):
             tool_context=tool_context
         )
 
-        resp = await self._llm_clean_tool(prompt)
+        resp = await self._llm_clean_text(prompt)
         # print("Here is resp", resp)
         parsed = self._parse_json(resp)
         self.history.append({"role": "assistant", "content": f"[Tool Selection]\n{parsed}"})
@@ -625,6 +625,17 @@ class SGCAgent(BaseAgent):
         # print("History is ", self.history)
 
         return tasks
+
+    async def _final_summary(self, user_query: str, choices: str) -> str:
+        prompt = FINAL_SUMMARY_PROMPT.format(
+            user_query=user_query,
+            choices=choices,
+            working_memory=self.working_memory.get_final_report_view()
+        )
+        final_summary = await self._llm_clean_text(prompt=prompt)
+        self.history.append({"role": "assistant", "content": final_summary})
+        return final_summary
+
 
     async def run(self, user_query: str, choices):
         # 1. 初始化组件
@@ -852,32 +863,7 @@ class SGCAgent(BaseAgent):
                         break
 
             # 最终总结
-            final_prompt = f"""
-                You are generating the final report for this agent run.
-                User query:
-                {user_query}
-                
-                Answer Choices:
-                {choices}
-    
-                Working memory view:
-                {self.working_memory.get_final_report_view()}
-    
-                Requirements:
-                1) **Always output a final answer from the available answer choices (A/B/C/D)**, if provided in the user query.
-                2) **If the task FAILED**, include the following:
-                   - Completed steps: List out all the steps that were executed.
-                   - Last failure information: Provide details on what went wrong (e.g., incorrect input, tool malfunction, etc.).
-                   - What is missing: Clearly state what part of the task could not be completed and why.
-    
-                3) **When answer choices (A/B/C/D) are provided in the user query**, select the best option from the available outputs. The answer should match **the tool’s execution results**. Ensure you check the tool output carefully for correctness before selecting the answer. If no answer matches, indicate that it cannot be determined from the available tool outputs.
-                4) **Verification**: If the tool output contains multiple potential answers or ambiguous results, state that it is unclear and cannot be definitively answered from the available tool outputs. Always ensure the correct matching between the question's requirements and the tool’s results.
-    
-                **Rely on the information, only output (A/B/C/D)** 
-                """
-            final_summary = await self._llm_clean_tool(prompt=final_prompt)
-            self.history.append({"role": "assistant", "content": final_summary})
-            return final_summary
+            final_summary = await self._final_summary(user_query, choices)
 
         except asyncio.CancelledError:
             # 专门捕获超时信号
@@ -886,7 +872,7 @@ class SGCAgent(BaseAgent):
             self.history.append({"role": "system", "content": final_summary})
 
         except Exception as e:
-            print(f"\n[!] 💥 Runtime Error: {e}")
+            print(f"\n[!]Runtime Error: {e}")
             final_summary = f"Runtime Error: {str(e)}"
 
         finally:
@@ -894,12 +880,3 @@ class SGCAgent(BaseAgent):
             self.save_data(query=user_query, final_result=final_summary)
 
             return final_summary
-
-    # def print_graph_edges(self, graph_manager, tool_names, k=20):
-    #     edges = torch.nonzero(graph_manager.adj, as_tuple=False)
-    #
-    #     print(f"[CHECK] Showing {min(k, edges.shape[0])} edges (parent → child):")
-    #     for i in range(min(k, edges.shape[0])):
-    #         p, c = edges[i].tolist()
-    #         w = graph_manager.adj[p, c].item()
-    #         print(f"  {tool_names[p]}  →  {tool_names[c]}   (weight={w})")

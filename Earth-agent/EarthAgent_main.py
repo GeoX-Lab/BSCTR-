@@ -1,11 +1,21 @@
+import sys
+import os
+
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+print(f"Project Root set to: {project_root}")
 import asyncio
 import json
 from Agent import SGCAgent
 from Toolregistry import ToolRegistry
 from tools import Analysis, Index, Inversion, Perception, Statistics
 
-
-def load_questions(test_json_path: str = "./question.json"):
+def load_questions(test_json_path: str = "./Earth-agent/question.json"):
     """Load evaluation questions (EarthAgent official style)"""
 
     with open(test_json_path, "r", encoding="utf-8") as f:
@@ -90,55 +100,55 @@ async def main():
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
-    samples = load_questions("./question.json")
+    samples = load_questions("./Earth-agent/question.json")
     print(f"[*] Loaded {len(samples)} benchmark questions.")
 
     if not samples:
         print("[!] No valid questions found.")
         return
 
-    # sample = samples[3]
-    # user_query = build_prompt(sample)
-    # choices = sample.get("choices")
-    # try:
-    #     result = await agent.run(user_query, choices)
-    #
-    #     print("\n================ RESULT ================")
-    #     print(result)
-    #     print("========================================")
-    #
-    # except Exception as e:
-    #     print(f"[!] Agent execution failed: {e}")
-    #     import traceback
-    #     traceback.print_exc()
+    sample = samples[32]
+    user_query = build_prompt(sample)
+    choices = sample.get("choices")
+    try:
+        result = await agent.run(user_query, choices)
+    
+        print("\n================ RESULT ================")
+        print(result)
+        print("========================================")
+    
+    except Exception as e:
+        print(f"[!] Agent execution failed: {e}")
+        import traceback
+        traceback.print_exc()
 
-    samples_half = samples[:31]
-    for sample in samples_half:
-        user_query = build_prompt(sample)
-        choices = sample.get("choices")
+    # samples_half = samples[:31]
+    # for sample in samples_half:
+    #     user_query = build_prompt(sample)
+    #     choices = sample.get("choices")
 
-        # print("\n================ PROMPT ================")
-        # print(user_query)
-        # print("========================================\n")
+    #     # print("\n================ PROMPT ================")
+    #     # print(user_query)
+    #     # print("========================================\n")
 
-        try:
-            print(f"[*] Running {user_query}")
-            result = await asyncio.wait_for(
-                agent.run(user_query, choices),
-                timeout=TIMEOUT_SECONDS
-            )
+    #     try:
+    #         print(f"[*] Running {user_query}")
+    #         result = await asyncio.wait_for(
+    #             agent.run(user_query, choices),
+    #             timeout=TIMEOUT_SECONDS
+    #         )
 
-            print("\n================ RESULT ================")
-            print(result)
-            print("========================================")
+    #         print("\n================ RESULT ================")
+    #         print(result)
+    #         print("========================================")
 
-        except asyncio.TimeoutError:
-            print(f"[!] 🚨 TASK TIMEOUT: The agent failed to finish within {TIMEOUT_SECONDS} seconds.")
+    #     except asyncio.TimeoutError:
+    #         print(f"[!] TASK TIMEOUT: The agent failed to finish within {TIMEOUT_SECONDS} seconds.")
 
-        except Exception as e:
-            print(f"[!] Agent execution failed: {e}")
-            import traceback
-            traceback.print_exc()
+    #     except Exception as e:
+    #         print(f"[!] Agent execution failed: {e}")
+    #         import traceback
+    #         traceback.print_exc()
 
 
 if __name__ == "__main__":
