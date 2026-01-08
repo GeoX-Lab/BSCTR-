@@ -168,7 +168,7 @@ def main():
 
     # 1. 构造文件路径
     pred_file = os.path.join(MODEL_OUTPUT_DIR, "results_summary_polished.json")
-    tool_file = os.path.join(MODEL_OUTPUT_DIR, "extracted_tool_calls.json")
+    tool_file = os.path.join(MODEL_OUTPUT_DIR, "merged_tool_calls.json")
 
     # 2. 检查文件是否存在
     if not os.path.exists(GROUND_TRUTH_FILE):
