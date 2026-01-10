@@ -1,3 +1,4 @@
+import os
 import json
 import requests
 import yaml
@@ -115,11 +116,13 @@ class SGCAgent(BaseAgent):
     def __init__(self,
                  initial_model: str,
                  output_dir: str,
+                 tool_dir: str,
                  device: str = "cuda" if torch.cuda.is_available() else "cpu"):
 
         self.output_dir = output_dir
         super().__init__(initial_model, SYSTEM_PROMPT, self.output_dir)
         self.device = device
+        self.tool_dir = tool_dir
         print(f"[*] SGCAgent initialized on device: {self.device}")
 
         self.working_memory = None
@@ -156,6 +159,34 @@ class SGCAgent(BaseAgent):
         with open(self.output_dir, "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         print(f"[*] Task archived to {self.output_dir}")
+    
+    def _save_tool(self):
+        """
+        辅助函数：将当前 self.tool_set 中的工具名称保存到 JSON 文件
+        """
+        current_tools = list(self.tool_set.keys())
+
+        if os.path.exists(self.tool_dir):
+            try:
+                with open(self.tool_dir, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except json.JSONDecodeError:
+                data = {}
+        else:
+            data = {}
+
+        existing_indices = [int(k) for k in data.keys() if k.isdigit()]
+        if existing_indices:
+            new_index = str(max(existing_indices) + 1)
+        else:
+            new_index = "0"
+
+        data[new_index] = current_tools
+
+        with open(self.tool_dir, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+        print(f">>> [Log] Saved {len(current_tools)} tools to {self.tool_dir} (Index: {new_index})")
 
     def get_text_embedding(self, text: str) -> torch.Tensor:
 
@@ -210,39 +241,34 @@ class SGCAgent(BaseAgent):
 
         print(f"[*] Initializing SGC Graph for {num_nodes} tools...")
 
-        # 1. 初始化图管理器 (传入 device，矩阵将创建在 GPU)
-        # 初始状态：离散节点，无边
         self.graph_manager = GraphManager(num_nodes=num_nodes, device=self.device)
 
-        # 2. 批量生成初始工具嵌入 (Raw Embeddings)
         raw_embeds_list = []
         for des in desc:
-            # get_text_embedding 已经处理了 device
             raw_embeds_list.append(self.get_text_embedding(des))
 
         if raw_embeds_list:
-            # torch.cat 在 GPU 上执行拼接
-            self.raw_embeddings = torch.cat(raw_embeds_list, dim=0)  # (N, D)
+            self.raw_embeddings = torch.cat(raw_embeds_list, dim=0)
         else:
             self.raw_embeddings = torch.empty(0, device=self.device)
-        # 历史轨迹输入
+
         if trajectory_file_path:
             # print("[*] Reading trajectory from file and updating graph...")
-            trajectories = self.load_trajectory_from_file(trajectory_file_path, 0)
+            trajectories = self.load_trajectory_from_file(trajectory_file_path, 8)
             # print(f"[*] Reading trajectory from {trajectories}")
 
             total_edges = 0
             total_missing = 0
 
-            for traj in trajectories:  # 每一条工具链
+            for traj in trajectories:
                 indices = []
                 last = None
 
                 # print("\n[DEBUG] traj =", traj)
                 # print("[DEBUG] type(traj) =", type(traj))
 
-                for i, x in enumerate(traj):
-                    print(f"   [DEBUG] traj[{i}] =", repr(x), "type:", type(x))
+                # for i, x in enumerate(traj):
+                #     print(f"   [DEBUG] traj[{i}] =", repr(x), "type:", type(x))
 
                 for name in traj:  # 每一个工具名
                     if not isinstance(name, str):
@@ -254,7 +280,6 @@ class SGCAgent(BaseAgent):
 
                     idx = self.tool_map[name]
 
-                    # 去掉连续重复（避免自环）
                     if last is not None and idx == last:
                         continue
 
@@ -266,18 +291,17 @@ class SGCAgent(BaseAgent):
                     total_edges += len(indices) - 1
 
             print(f"[*] Trajectory init done: edges={total_edges}, missing_tools={total_missing}")
-        # 4. 初始化 SGC 检索器
-        # 计算将利用 GPU 加速
+
         self.retriever = SGCRetriever(
             graph_manager=self.graph_manager,
             tool_names=self.tool_names,
             raw_embeddings=self.raw_embeddings,
-            alpha=0.2  # 调节 SGC 聚合强度
+            alpha=0.2
         )
         print("[*] SGC System ready.")
 
     def _assert_tool_index_alignment(self):
-        # tool_names[i] <-> tool_map[name] == i
+        
         for i, name in enumerate(self.retriever.tool_names):
             assert name in self.tool_map, f"[ALIGN ERROR] Tool '{name}' not in tool_map"
             assert self.tool_map[name] == i, (
@@ -287,7 +311,7 @@ class SGCAgent(BaseAgent):
             )
 
     async def _llm_generate_text(self, prompt: str, history: List[Dict] = None) -> str:
-        """辅助方法：非流式获取 LLM 完整响应"""
+        """非流式获取 LLM 完整响应"""
         acc = []
         async for chunk in self.llm.generate_stream_res(prompt=prompt, history=history):
             if chunk.get("type") in ("text", "stream", "final"):
@@ -303,7 +327,7 @@ class SGCAgent(BaseAgent):
 
     def extract_all_json_blocks(self, text: str):
         """
-        从文本中提取所有合法 JSON（object 或 array）
+        从文本中提取 JSON（object 或 array）
         返回 List[Any]
         """
         results = []
@@ -314,7 +338,6 @@ class SGCAgent(BaseAgent):
         escape = False
 
         for i, ch in enumerate(text):
-            # 处理字符串状态（忽略字符串内部的 { } [ ]）
             if in_str:
                 if escape:
                     escape = False
@@ -329,8 +352,6 @@ class SGCAgent(BaseAgent):
                 if ch == '"':
                     in_str = True
                     continue
-
-            # 只在非字符串状态下处理括号
             if ch in "{[":
                 if not stack:
                     start = i
@@ -341,10 +362,7 @@ class SGCAgent(BaseAgent):
                     continue
 
                 open_ch = stack.pop()
-
-                # 可选：括号类型匹配检查（更严格）
                 if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
-                    # 不匹配：清空，避免产生错误块
                     stack = []
                     start = None
                     continue
@@ -370,7 +388,6 @@ class SGCAgent(BaseAgent):
         }
 
         for b in blocks:
-            # 1. 解析任务列表 (Planning)
             if (
                     isinstance(b, list) and b
                     and isinstance(b[0], dict)
@@ -379,14 +396,12 @@ class SGCAgent(BaseAgent):
                 parsed["tasks"] = b
                 continue
 
-            # 2. 解析工具调用 (Action) - 格式1: {tool_calls: [...]}
             if isinstance(b, dict) and "tool_calls" in b and isinstance(b["tool_calls"], list):
                 parsed["tool_calls"] = b["tool_calls"]
                 if "reason" in b:
                     parsed["reason"] = b["reason"]
                 continue
-
-            # 3. 解析工具调用 (Action) - 格式2: [{tool_name: ...}]
+            
             if (
                     isinstance(b, list) and b
                     and isinstance(b[0], dict)
@@ -395,7 +410,6 @@ class SGCAgent(BaseAgent):
                 parsed["tool_calls"] = b
                 continue
 
-            # 4. 解析验证结果 (Verification)
             if isinstance(b, dict) and "status" in b:
                 if "error_type" in b or "reason" in b:
                     parsed["verification"] = b
@@ -456,7 +470,6 @@ class SGCAgent(BaseAgent):
                 tool_name = c["name"]
                 score = c["score"]
 
-                # 将排名信息存入 task 结构
                 task['suggested_tools'].append({
                     "name": tool_name,
                     "score": score,
@@ -669,6 +682,7 @@ class SGCAgent(BaseAgent):
             # 3. 检索工具池
             print("\n>>> [Retrieval] Collecting tools for ALL planned tasks...")
             self.build_tool_pool(task_queue)
+            self._save_tool()
 
             # 4. 任务执行循环
             task_idx = 0
