@@ -1191,7 +1191,7 @@ def ATI(
 
     # Save output
     day_profile.update(dtype=rasterio.float32, count=1, compress='lzw')
-    out_path = Path(TEMP_DIR) / output_path
+    out_path = TEMP_DIR / output_path
     os.makedirs(out_path.parent, exist_ok=True)
     with rasterio.open(out_path, 'w', **day_profile) as dst:
         dst.write(ATI, 1)

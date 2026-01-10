@@ -93,7 +93,11 @@ async def main():
             print(f"[!] Warning: {module.__name__} has no mcp object")
 
     # TODO 初始化智能体
-    agent = SGCAgent(initial_model="Qwen3-32B-AWQ", output_dir="/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/Qwen3-32B/Qwen3-32B.jsonl")
+    Path = "/media/csudxy0218/ZL/AgentToolmem/Earth-agent/evaluate/Qwen3-32B"
+    model_name = "Qwen3-32B-AWQ"
+    output_dir = os.path.join(Path, f"{model_name}.jsonl")
+    tool_dir = os.path.join(Path, "tool_log.json")
+    agent = SGCAgent(initial_model=model_name, output_dir=output_dir, tool_dir=tool_dir)
     agent.tool_registry = registry
     print("[*] Agent and tool registry initialized.")
 
@@ -104,48 +108,55 @@ async def main():
         print("[!] No valid questions found.")
         return
 
-    # sample = samples[32]
-    # user_query = build_prompt(sample)
-    # choices = sample.get("choices")
-    # try:
-    #     result = await agent.run(user_query, choices)
-    
-    #     print("\n================ RESULT ================")
-    #     print(result)
-    #     print("========================================")
-    
-    # except Exception as e:
-    #     print(f"[!] Agent execution failed: {e}")
-    #     import traceback
-    #     traceback.print_exc()
+    sample = samples[40]
+    user_query = build_prompt(sample)
+    choices = sample.get("choices")
+    try:
+        print(f"[*] Running {user_query}")
+        result = await asyncio.wait_for(
+            agent.run(user_query, choices),
+            timeout=TIMEOUT_SECONDS
+        )
 
-    samples_half = samples[:31]
-    for sample in samples_half:
-        user_query = build_prompt(sample)
-        choices = sample.get("choices")
+        print("\n================ RESULT ================")
+        print(result)
+        print("========================================")
 
-        # print("\n================ PROMPT ================")
-        # print(user_query)
-        # print("========================================\n")
+    except asyncio.TimeoutError:
+        print(f"[!] TASK TIMEOUT: The agent failed to finish within {TIMEOUT_SECONDS} seconds.")
 
-        try:
-            print(f"[*] Running {user_query}")
-            result = await asyncio.wait_for(
-                agent.run(user_query, choices),
-                timeout=TIMEOUT_SECONDS
-            )
+    except Exception as e:
+        print(f"[!] Agent execution failed: {e}")
+        import traceback
+        traceback.print_exc()
 
-            print("\n================ RESULT ================")
-            print(result)
-            print("========================================")
+    # samples_half = samples[8:31]
+    # for sample in samples_half:
+    #     user_query = build_prompt(sample)
+    #     choices = sample.get("choices")
 
-        except asyncio.TimeoutError:
-            print(f"[!] TASK TIMEOUT: The agent failed to finish within {TIMEOUT_SECONDS} seconds.")
+    #     # print("\n================ PROMPT ================")
+    #     # print(user_query)
+    #     # print("========================================\n")
 
-        except Exception as e:
-            print(f"[!] Agent execution failed: {e}")
-            import traceback
-            traceback.print_exc()
+    #     try:
+    #         print(f"[*] Running {user_query}")
+    #         result = await asyncio.wait_for(
+    #             agent.run(user_query, choices),
+    #             timeout=TIMEOUT_SECONDS
+    #         )
+
+    #         print("\n================ RESULT ================")
+    #         print(result)
+    #         print("========================================")
+
+    #     except asyncio.TimeoutError:
+    #         print(f"[!] TASK TIMEOUT: The agent failed to finish within {TIMEOUT_SECONDS} seconds.")
+
+    #     except Exception as e:
+    #         print(f"[!] Agent execution failed: {e}")
+    #         import traceback
+    #         traceback.print_exc()
 
 
 if __name__ == "__main__":

@@ -26,7 +26,6 @@ class ToolRegistry:
         with open(path, 'r', encoding='utf-8') as f:
             tools_json = json.load(f)
         for tool in tools_json:
-            # 假设 JSON 文件中的每个工具都包含 'name', 'callable', 'meta'
             tool_name = tool.get("name")
             tool_callable = tool.get("callable")
             meta = tool.get("meta", {})
@@ -44,7 +43,7 @@ class ToolRegistry:
         if tool_name in self.tools:
             return self.tools.get(tool_name)
         else:
-            return None  # 返回 None 而不是字符串，便于后续处理
+            return None
 
     def register_tool(self, tool_name: str, tool_callable: Callable, meta: dict):
         """
@@ -57,7 +56,6 @@ class ToolRegistry:
     def _infer_parameters_from_callable(self, fn: Callable) -> Dict[str, Any]:
         """
         从 Python 函数签名推断一个最小可用的 parameters schema
-        （仅用于 MCP 工具适配）
         """
         sig = inspect.signature(fn)
 
@@ -65,7 +63,6 @@ class ToolRegistry:
         required = []
 
         for name, param in sig.parameters.items():
-            # --- 类型推断（保守策略） ---
             ann = param.annotation
             json_type = "string"
 
@@ -101,17 +98,13 @@ class ToolRegistry:
         if not raw_desc:
             return ""
 
-        # 删除空格和换行符，处理成一个单一文本块
         cleaned_desc = raw_desc.strip().replace("\n", " ").replace("\r", "")
 
-        # 找到 Parameters 之前的部分
         param_index = cleaned_desc.lower().find("parameters")
 
         if param_index != -1:
-            # 如果找到了 "parameters"，则截取其之前的部分
             return cleaned_desc[:param_index].strip()
 
-        # 如果找不到 "parameters"，返回整个描述（处理没有 parameters 的情况）
         return cleaned_desc
 
     def load_from_fastmcp(self, mcp: FastMCP):
@@ -123,7 +116,6 @@ class ToolRegistry:
         tools: dict = mcp._tool_manager._tools
         for tool_name, tool_obj in tools.items():
 
-            # 1️⃣ 解析 callable
             tool_callable = (
                     getattr(tool_obj, "fn", None)
                     or getattr(tool_obj, "callable", None)
@@ -157,7 +149,6 @@ class ToolRegistry:
 
         properties, required = {}, []
         for k, spec in params_meta.items():
-            # 期望 spec 里至少含有 type/description/required
             properties[k] = {
                 "type": spec.get("type", "string"),
                 "description": spec.get("description", "")
@@ -194,13 +185,11 @@ class ToolRegistry:
         if "parameters" in meta and meta["parameters"]:
             schema = meta["parameters"]
         else:
-            # 否则尝试根据函数签名生成 (兼容旧逻辑)
             try:
                 schema = self.generate_tool_schema(tool_name)
             except Exception:
                 schema = {}
 
-            # 描述优先取 meta 里的
         desc = meta.get("description") or tool.get("description") or tool_name
 
         return {
