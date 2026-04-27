@@ -1,0 +1,186 @@
+{
+  "task_info": {
+    "task_id": "94abedaa-eb99-4e22-a35e-6ebb83f23490",
+    "dag_template_filename": "dag_template_Defense & Security_Simple_61240d46-c402-4ea5-8633-7fef2cd71753.json",
+    "complexity": "Simple",
+    "domain": "Defense & Security",
+    "question": "Generate a threat assessment report identifying any maritime vessels that deviated from standard shipping lanes to exhibit loitering behavior near critical port infrastructure within the San Pedro Bay throughout January 2023.",
+    "ground_truth_tool_flow": [
+      "download_satellite_imagery",
+      "geometric_correction",
+      "atmospheric_correction",
+      "cloud_mask_removal",
+      "enhance_image_resolution",
+      "segment_water_bodies",
+      "detect_ships",
+      "track_ship_movements",
+      "analyze_threat_patterns",
+      "generate_analysis_reports"
+    ]
+  },
+  "eval_result": {
+    "ReAct": {
+      "tool_trajectory": [
+        "track_vessel_activities",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_steps": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_step_recall": 0.4,
+      "key_tools": [
+        "track_vessel_activities",
+        "analyze_threat_patterns"
+      ],
+      "key_tool_precision": 0.5,
+      "F1_score": 0.4444444444444445,
+      "enhanced_edit_distance": 8.820975698390196,
+      "tool_flow_similarity": 0.41193495344065356,
+      "completeness_score": 970.7990894212785
+    },
+    "Plan-and-Execute": {
+      "tool_trajectory": [
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "assess_coastal_erosion"
+      ],
+      "key_steps": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_step_recall": 0.4,
+      "key_tools": [
+        "track_ship_movements",
+        "analyze_threat_patterns"
+      ],
+      "key_tool_precision": 1.0,
+      "F1_score": 0.5714285714285715,
+      "enhanced_edit_distance": 9.105956353106688,
+      "tool_flow_similarity": 0.3929362431262208,
+      "completeness_score": 940.3681483420005
+    },
+    "EarthAgent": {
+      "tool_trajectory": [
+        "recommend_satellite_platforms",
+        "download_satellite_imagery",
+        "get_weather_data",
+        "atmospheric_correction",
+        "geometric_correction",
+        "cloud_mask_removal",
+        "detect_ships",
+        "statistical_analysis",
+        "assess_marine_pollution",
+        "track_ocean_currents",
+        "evaluate_fishing_grounds",
+        "generate_analysis_reports"
+      ],
+      "key_steps": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_step_recall": 0.6,
+      "key_tools": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "statistical_analysis"
+      ],
+      "key_tool_precision": 0.6666666666666666,
+      "F1_score": 0.631578947368421,
+      "enhanced_edit_distance": 4.161060202673524,
+      "tool_flow_similarity": 0.7688299887403598,
+      "completeness_score": 1074.800008446257
+    },
+    "Debate": {
+      "tool_trajectory": [
+        "track_ship_movements",
+        "track_vessel_activities",
+        "detect_ships",
+        "analyze_threat_patterns",
+        "format_data"
+      ],
+      "key_steps": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_step_recall": 0.6,
+      "key_tools": [
+        "track_ship_movements",
+        "detect_ships",
+        "analyze_threat_patterns"
+      ],
+      "key_tool_precision": 1.0,
+      "F1_score": 0.7499999999999999,
+      "enhanced_edit_distance": 7.333172899923845,
+      "tool_flow_similarity": 0.5111218066717437,
+      "completeness_score": 1027.082708650868
+    },
+    "CoT": {
+      "tool_trajectory": [
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "extract_keywords",
+        "read_database",
+        "summarize_text"
+      ],
+      "key_steps": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_step_recall": 0.4,
+      "key_tools": [
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "read_database"
+      ],
+      "key_tool_precision": 0.6666666666666666,
+      "F1_score": 0.5,
+      "enhanced_edit_distance": 7.895115157310541,
+      "tool_flow_similarity": 0.47365898951263063,
+      "completeness_score": 1002.0328259475615
+    },
+    "AFlow": {
+      "tool_trajectory": [
+        "download_satellite_imagery",
+        "geometric_correction",
+        "atmospheric_correction",
+        "cloud_mask_removal",
+        "generate_analysis_reports"
+      ],
+      "key_steps": [
+        "download_satellite_imagery",
+        "detect_ships",
+        "track_ship_movements",
+        "analyze_threat_patterns",
+        "generate_analysis_reports"
+      ],
+      "key_step_recall": 0.4,
+      "key_tools": [
+        "download_satellite_imagery",
+        "geometric_correction",
+        "generate_analysis_reports"
+      ],
+      "key_tool_precision": 1.0,
+      "F1_score": 0.5714285714285715,
+      "enhanced_edit_distance": 5.759055527989145,
+      "tool_flow_similarity": 0.6160629648007236,
+      "completeness_score": 929.5855836174152
+    }
+  }
+}

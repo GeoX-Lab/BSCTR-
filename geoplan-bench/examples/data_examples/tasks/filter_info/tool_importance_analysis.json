@@ -1,0 +1,281 @@
+{
+  "analysis_metadata": {
+    "generated_at": "2025-11-21T15:12:16.968429",
+    "source": "tasks",
+    "total_templates": 0,
+    "total_tasks": 2,
+    "total_tools": 13,
+    "graph_nodes": 13,
+    "graph_edges": 13,
+    "base_cost": 1.0,
+    "alpha": 1.0
+  },
+  "tool_importance_scores": {
+    "detect_ships": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.06965306105793785,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0696530610579378,
+      "combined_importance": 0.28482653052896895,
+      "combined_cost": 1.284826530528969
+    },
+    "enhance_image_resolution": {
+      "out_degree_centrality": 1.0,
+      "pagerank_centrality": 0.08098516273707794,
+      "out_degree_cost": 2.0,
+      "pagerank_cost": 1.080985162737078,
+      "combined_importance": 0.540492581368539,
+      "combined_cost": 1.540492581368539
+    },
+    "track_ship_movements": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.08104201441699141,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0810420144169914,
+      "combined_importance": 0.2905210072084957,
+      "combined_cost": 1.2905210072084956
+    },
+    "cloud_mask_removal": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.06958576760876507,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.069585767608765,
+      "combined_importance": 0.28479288380438256,
+      "combined_cost": 1.2847928838043825
+    },
+    "atmospheric_correction": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.05617513778297764,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0561751377829776,
+      "combined_importance": 0.27808756889148883,
+      "combined_cost": 1.2780875688914888
+    },
+    "correlation_analysis": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.08104201441699141,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0810420144169914,
+      "combined_importance": 0.2905210072084957,
+      "combined_cost": 1.2905210072084956
+    },
+    "detect_buildings": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.05625553920912433,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0562555392091244,
+      "combined_importance": 0.27812776960456215,
+      "combined_cost": 1.2781277696045623
+    },
+    "generate_analysis_reports": {
+      "out_degree_centrality": 0.0,
+      "pagerank_centrality": 0.15750777940960248,
+      "out_degree_cost": 1.0,
+      "pagerank_cost": 1.1575077794096025,
+      "combined_importance": 0.07875388970480124,
+      "combined_cost": 1.0787538897048012
+    },
+    "download_satellite_imagery": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.02183705960366928,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0218370596036692,
+      "combined_importance": 0.26091852980183466,
+      "combined_cost": 1.2609185298018346
+    },
+    "segment_water_bodies": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.05625553920912433,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0562555392091244,
+      "combined_importance": 0.27812776960456215,
+      "combined_cost": 1.2781277696045623
+    },
+    "assess_strategic_infrastructure": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.06965306105793785,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0696530610579378,
+      "combined_importance": 0.28482653052896895,
+      "combined_cost": 1.284826530528969
+    },
+    "geometric_correction": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.04039818736787119,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.0403981873678712,
+      "combined_importance": 0.2701990936839356,
+      "combined_cost": 1.2701990936839356
+    },
+    "analyze_threat_patterns": {
+      "out_degree_centrality": 0.5,
+      "pagerank_centrality": 0.1596096761219294,
+      "out_degree_cost": 1.5,
+      "pagerank_cost": 1.1596096761219294,
+      "combined_importance": 0.3298048380609647,
+      "combined_cost": 1.3298048380609648
+    }
+  },
+  "top_tools_by_combined_importance": [
+    [
+      "enhance_image_resolution",
+      0.540492581368539
+    ],
+    [
+      "analyze_threat_patterns",
+      0.3298048380609647
+    ],
+    [
+      "track_ship_movements",
+      0.2905210072084957
+    ],
+    [
+      "correlation_analysis",
+      0.2905210072084957
+    ],
+    [
+      "detect_ships",
+      0.28482653052896895
+    ],
+    [
+      "assess_strategic_infrastructure",
+      0.28482653052896895
+    ],
+    [
+      "cloud_mask_removal",
+      0.28479288380438256
+    ],
+    [
+      "detect_buildings",
+      0.27812776960456215
+    ],
+    [
+      "segment_water_bodies",
+      0.27812776960456215
+    ],
+    [
+      "atmospheric_correction",
+      0.27808756889148883
+    ],
+    [
+      "geometric_correction",
+      0.2701990936839356
+    ],
+    [
+      "download_satellite_imagery",
+      0.26091852980183466
+    ],
+    [
+      "generate_analysis_reports",
+      0.07875388970480124
+    ]
+  ],
+  "top_tools_by_out_degree": [
+    [
+      "enhance_image_resolution",
+      1.0
+    ],
+    [
+      "detect_ships",
+      0.5
+    ],
+    [
+      "track_ship_movements",
+      0.5
+    ],
+    [
+      "cloud_mask_removal",
+      0.5
+    ],
+    [
+      "atmospheric_correction",
+      0.5
+    ],
+    [
+      "correlation_analysis",
+      0.5
+    ],
+    [
+      "detect_buildings",
+      0.5
+    ],
+    [
+      "download_satellite_imagery",
+      0.5
+    ],
+    [
+      "segment_water_bodies",
+      0.5
+    ],
+    [
+      "assess_strategic_infrastructure",
+      0.5
+    ],
+    [
+      "geometric_correction",
+      0.5
+    ],
+    [
+      "analyze_threat_patterns",
+      0.5
+    ],
+    [
+      "generate_analysis_reports",
+      0.0
+    ]
+  ],
+  "top_tools_by_pagerank": [
+    [
+      "analyze_threat_patterns",
+      0.1596096761219294
+    ],
+    [
+      "generate_analysis_reports",
+      0.15750777940960248
+    ],
+    [
+      "track_ship_movements",
+      0.08104201441699141
+    ],
+    [
+      "correlation_analysis",
+      0.08104201441699141
+    ],
+    [
+      "enhance_image_resolution",
+      0.08098516273707794
+    ],
+    [
+      "detect_ships",
+      0.06965306105793785
+    ],
+    [
+      "assess_strategic_infrastructure",
+      0.06965306105793785
+    ],
+    [
+      "cloud_mask_removal",
+      0.06958576760876507
+    ],
+    [
+      "detect_buildings",
+      0.05625553920912433
+    ],
+    [
+      "segment_water_bodies",
+      0.05625553920912433
+    ],
+    [
+      "atmospheric_correction",
+      0.05617513778297764
+    ],
+    [
+      "geometric_correction",
+      0.04039818736787119
+    ],
+    [
+      "download_satellite_imagery",
+      0.02183705960366928
+    ]
+  ]
+}

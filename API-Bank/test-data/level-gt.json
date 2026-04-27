@@ -1,0 +1,233 @@
+{
+  "0": [
+    "QueryMeeting",
+    "EmailReminder",
+    "EmailReminder"
+  ],
+  "1": [
+    "QueryMeeting",
+    "EmailReminder"
+  ],
+  "2": [
+    "QueryMeeting",
+    "EmailReminder"
+  ],
+  "3": [
+    "QueryMeeting",
+    "EmailReminder"
+  ],
+  "4": [
+    "QueryMeeting",
+    "EmailReminder"
+  ],
+  "5": [
+    "GetWeatherForCoordinates",
+    "ClothingRecommendation"
+  ],
+  "6": [
+    "GetWeatherForCoordinates",
+    "ClothingRecommendation"
+  ],
+  "7": [
+    "GetWeatherForCoordinates",
+    "ClothingRecommendation"
+  ],
+  "8": [
+    "GetWeatherForCoordinates",
+    "ClothingRecommendation"
+  ],
+  "9": [
+    "GetWeatherForCoordinates",
+    "ClothingRecommendation"
+  ],
+  "10": [
+    "OrganizationMembers",
+    "TravelStatus",
+    "TravelStatus",
+    "TravelStatus",
+    "AddMeeting"
+  ],
+  "11": [
+    "OrganizationMembers",
+    "TravelStatus",
+    "TravelStatus",
+    "AddMeeting"
+  ],
+  "12": [
+    "OrganizationMembers",
+    "TravelStatus",
+    "TravelStatus",
+    "AddMeeting"
+  ],
+  "13": [
+    "OrganizationMembers",
+    "TravelStatus",
+    "TravelStatus",
+    "AddMeeting"
+  ],
+  "14": [
+    "OrganizationMembers",
+    "TravelStatus",
+    "TravelStatus",
+    "AddMeeting"
+  ],
+  "15": [
+    "Geocoding",
+    "NearbyRestaurants"
+  ],
+  "16": [
+    "Geocoding",
+    "NearbyRestaurants"
+  ],
+  "17": [
+    "Geocoding",
+    "NearbyRestaurants"
+  ],
+  "18": [
+    "Geocoding",
+    "NearbyRestaurants"
+  ],
+  "19": [
+    "Geocoding",
+    "NearbyRestaurants"
+  ],
+  "20": [
+    "UserMoviePreferences",
+    "UserWatchedMovies",
+    "MovieRecommendations"
+  ],
+  "21": [
+    "UserMoviePreferences",
+    "UserWatchedMovies",
+    "MovieRecommendations"
+  ],
+  "22": [
+    "UserMoviePreferences",
+    "UserWatchedMovies",
+    "MovieRecommendations"
+  ],
+  "23": [
+    "UserMoviePreferences",
+    "UserWatchedMovies",
+    "MovieRecommendations"
+  ],
+  "24": [
+    "UserMoviePreferences",
+    "UserWatchedMovies",
+    "MovieRecommendations"
+  ],
+  "25": [
+    "UserPosts",
+    "LikeCount",
+    "LikeCount",
+    "LikeCount",
+    "Calculator"
+  ],
+  "26": [
+    "UserPosts",
+    "LikeCount",
+    "LikeCount",
+    "LikeCount",
+    "Calculator"
+  ],
+  "27": [
+    "UserPosts",
+    "LikeCount",
+    "LikeCount",
+    "LikeCount",
+    "Calculator"
+  ],
+  "28": [
+    "UserPosts",
+    "LikeCount",
+    "LikeCount",
+    "LikeCount"
+  ],
+  "29": [
+    "UserPosts",
+    "LikeCount",
+    "LikeCount",
+    "LikeCount",
+    "Calculator"
+  ],
+  "30": [
+    "Geocoding",
+    "GetWeatherForCoordinates"
+  ],
+  "31": [
+    "Geocoding",
+    "GetWeatherForCoordinates"
+  ],
+  "32": [
+    "Geocoding",
+    "GetWeatherForCoordinates"
+  ],
+  "33": [
+    "Geocoding",
+    "GetWeatherForCoordinates"
+  ],
+  "34": [
+    "Geocoding",
+    "GetWeatherForCoordinates"
+  ],
+  "35": [
+    "FlightSearch",
+    "HotelAvailability"
+  ],
+  "36": [
+    "FlightSearch",
+    "HotelAvailability"
+  ],
+  "37": [
+    "FlightSearch",
+    "HotelAvailability"
+  ],
+  "38": [
+    "FlightSearch",
+    "HotelAvailability"
+  ],
+  "39": [
+    "FlightSearch",
+    "HotelAvailability"
+  ],
+  "40": [
+    "GetOccupationSalary",
+    "TaxCalculator"
+  ],
+  "41": [
+    "GetOccupationSalary",
+    "TaxCalculator"
+  ],
+  "42": [
+    "GetOccupationSalary",
+    "TaxCalculator"
+  ],
+  "43": [
+    "GetOccupationSalary",
+    "TaxCalculator"
+  ],
+  "44": [
+    "GetOccupationSalary",
+    "TaxCalculator"
+  ],
+  "45": [
+    "AccountInfo",
+    "PersonalInfoUpdate"
+  ],
+  "46": [
+    "AccountInfo",
+    "PersonalInfoUpdate"
+  ],
+  "47": [
+    "AccountInfo",
+    "PersonalInfoUpdate"
+  ],
+  "48": [
+    "AccountInfo",
+    "PersonalInfoUpdate"
+  ],
+  "49": [
+    "AccountInfo",
+    "PersonalInfoUpdate"
+  ]
+}
