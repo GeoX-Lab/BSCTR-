@@ -20,9 +20,7 @@ class ToolRegistry:
         return fn
 
     def load_tool(self, path: str):
-        """
-        从文件加载工具数据，并注册工具。
-        """
+
         with open(path, 'r', encoding='utf-8') as f:
             tools_json = json.load(f)
         for tool in tools_json:
@@ -37,26 +35,20 @@ class ToolRegistry:
         return tools_json
 
     def get_tool(self, tool_name: str):
-        """
-        获取指定工具的信息。
-        """
+
         if tool_name in self.tools:
             return self.tools.get(tool_name)
         else:
             return None
 
     def register_tool(self, tool_name: str, tool_callable: Callable, meta: dict):
-        """
-        注册一个工具。
-        """
+
         if not isinstance(meta, dict):
             return "Meta must be a dictionary!"
         self.tools[tool_name] = {"callable": tool_callable, "meta": meta}
 
     def _infer_parameters_from_callable(self, fn: Callable) -> Dict[str, Any]:
-        """
-        从 Python 函数签名推断一个最小可用的 parameters schema
-        """
+
         sig = inspect.signature(fn)
 
         properties = {}
@@ -92,9 +84,7 @@ class ToolRegistry:
         }
 
     def extract_short_description(self, raw_desc: str) -> str:
-        """
-        清理 mcp 数据，提取干净的工具 description
-        """
+
         if not raw_desc:
             return ""
 
@@ -108,9 +98,7 @@ class ToolRegistry:
         return cleaned_desc
 
     def load_from_fastmcp(self, mcp: FastMCP):
-        """
-        解析 FastMCP 对象，将所有 @mcp.tool 注册到当前 Registry。
-        """
+
         print(f"[*] Loading tools from FastMCP: {mcp.name}...")
 
         tools: dict = mcp._tool_manager._tools
@@ -137,9 +125,7 @@ class ToolRegistry:
             print(f"    - Registered MCP tool: {tool_name}")
 
     def generate_tool_schema(self, tool_name: str) -> dict:
-        """
-        生成工具的 schema，供 LLM 解析使用。
-        """
+
         tool = self.get_tool(tool_name)
         if not tool:
             raise KeyError(f"Tool '{tool_name}' not found in registry")
@@ -147,16 +133,22 @@ class ToolRegistry:
         meta = tool.get("meta", {})
         params_meta: Dict[str, Any] = meta.get("parameters", {}) or {}
 
+        # 如果已经是完整的 schema 格式（包含 type 和 properties），则直接返回
+        if "properties" in params_meta and isinstance(params_meta.get("properties"), dict):
+            return params_meta
+        
+        # 否则，构建 schema
         properties, required = {}, []
         for k, spec in params_meta.items():
-            properties[k] = {
-                "type": spec.get("type", "string"),
-                "description": spec.get("description", "")
-            }
-            if "enum" in spec:
-                properties[k]["enum"] = spec["enum"]
-            if spec.get("required", False):
-                required.append(k)
+            if isinstance(spec, dict):
+                properties[k] = {
+                    "type": spec.get("type", "string"),
+                    "description": spec.get("description", "")
+                }
+                if "enum" in spec:
+                    properties[k]["enum"] = spec["enum"]
+                if spec.get("required", False):
+                    required.append(k)
 
         return {
             "type": "object",
@@ -165,36 +157,33 @@ class ToolRegistry:
         }
 
     def get_unified_tool_info(self, tool_name: str) -> dict:
-        """
-        返回一个完全统一、结构化的工具信息，
-        包含 embedding 和 LLM 都能一致看到的字段。
 
-        返回结构：
-        {
-            "name": "...",
-            "description": "...",
-            "parameters": {...schema...},
-            "meta": {...原始meta...}
-        }
-        """
         tool = self.get_tool(tool_name)
         if not tool:
             raise KeyError(f"Tool '{tool_name}' not found")
 
         meta = tool.get("meta", {})
-        if "parameters" in meta and meta["parameters"]:
-            schema = meta["parameters"]
+        
+        # 如果 meta 中没有 parameters 或为空，则从 callable 推断
+        if "parameters" not in meta or not meta.get("parameters"):
+            try:
+                fn = tool.get("callable")
+                if fn and callable(fn):
+                    schema = self._infer_parameters_from_callable(fn)
+                else:
+                    schema = {}
+            except Exception:
+                schema = {}
         else:
             try:
                 schema = self.generate_tool_schema(tool_name)
             except Exception:
-                schema = {}
+                schema = meta.get("parameters", {})
 
         desc = meta.get("description") or tool.get("description") or tool_name
 
         return {
             "name": tool_name,
             "description": desc.strip(),
-            "parameters": schema,
-            "meta": meta
+            "parameters": schema
         }

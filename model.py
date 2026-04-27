@@ -113,6 +113,13 @@ class LLM:
                 temperature=temperature
             )
             call_kwargs.update(kwargs)
+            
+            extra_body = call_kwargs.get("extra_body", {})
+            if "chat_template_kwargs" not in extra_body:
+                extra_body["chat_template_kwargs"] = {}
+            extra_body["chat_template_kwargs"]["enable_thinking"] = False
+            call_kwargs["extra_body"] = extra_body
+
             res = await client.chat.completions.create(**call_kwargs)
 
             try:

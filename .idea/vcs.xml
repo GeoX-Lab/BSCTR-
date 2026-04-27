@@ -2,6 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/API-Bank" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Earth-agent/benchmark/data" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/geoplan-bench" vcs="Git" />
   </component>
 </project>

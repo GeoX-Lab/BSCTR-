@@ -4,8 +4,8 @@ import torch
 class GraphManager:
     """
     统一图管理器：
-    - 方向：adj[parent, child] = 1
-    - SGC 聚合时自动取转置：adj_sgc = adj.T
+    - 方向: adj[parent, child] = 1
+    - SGC 聚合时自动取转置: adj_sgc = adj.T
     """
 
     def __init__(self, num_nodes: int, device: str = "cuda" if torch.cuda.is_available() else "cpu"):
@@ -13,9 +13,6 @@ class GraphManager:
         self.num_nodes = num_nodes
         self.adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float32, device=device)
 
-    # -----------------------
-    # 图更新逻辑
-    # -----------------------
     def add_edge(self, parent, child, weight=1.0):
         if parent != child:
             # self.adj[parent, child] += weight
@@ -37,10 +34,7 @@ class GraphManager:
         if mask.any():
             # self.adj[parents[mask], children[mask]] += 1.0
             self.adj[parents[mask], children[mask]] = 1.0
-
-    # -----------------------
-    # 图数据输出（供 SGC + 检索）
-    # -----------------------
+            
     def get_sgc_adj(self):
         """
         SGC 需要 child × parent 的入度矩阵
